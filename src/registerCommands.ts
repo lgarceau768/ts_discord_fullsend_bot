@@ -1,6 +1,7 @@
 import { REST, Routes, SlashCommandBuilder } from "discord.js";
 import { env } from "./config.js";
 import ping from "./commands/ping.js";
+import search from "./commands/search.js";
 
 const isGlobal = process.argv.includes("--global");
 const isGuild = process.argv.includes("--guild");
@@ -13,7 +14,7 @@ if (!isGlobal && !isGuild) {
 const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN);
 
 // Collect commands dynamically (add more exports as you create them)
-const commands: SlashCommandBuilder[] = [ping.data];
+const commands: SlashCommandBuilder[] = [ping.data, search.data];
 const body = commands.map((c) => c.toJSON());
 
 async function main() {

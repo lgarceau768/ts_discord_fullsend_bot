@@ -51,3 +51,15 @@ npm run register:global
 ```bash
 docker compose up --build -d
 ```
+
+
+---
+### /search command (Trakt via n8n)
+This bot can search movies and TV shows using an **n8n** workflow that calls the Trakt API.
+
+**Setup**
+1) Set `N8N_SEARCH_URL` in `.env` to your n8n webhook URL (e.g., `https://<host>/webhook/trakt-search`).
+2) (Optional) If your webhook requires a token, set `N8N_API_KEY` and the bot will send `Authorization: Bearer <token>`.
+
+**Usage**
+- `/search query:<title> type:<movie|show|both>` – returns up to 5 results with quick links.
