@@ -1,0 +1,8 @@
+on_http_request:
+  - actions:
+      - type: owasp-crs-request
+        config:
+          on_error: halt
+          exclude_rule_ids:
+            - 941120  # XSS Filters - Category 2
+            - 941101  # XSS Filters - Paranoia Level 2

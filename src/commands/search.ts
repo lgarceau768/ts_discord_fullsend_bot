@@ -1,80 +1,108 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+} from "discord.js";
 import type { SlashCommand } from "./_types.js";
-import { callTraktSearch, type TraktType } from "../integrations/n8n.js";
+import { searchTrakt } from "../integrations/n8n.js";
 
-function buildLinks(item: any): string {
-  const type = item.type === "show" ? "show" : "movie";
-  const title = item.title ?? "Unknown";
-  const year = item.year ? ` (${item.year})` : "";
-  const ids = item.ids || {};
-  const parts: string[] = [];
-
-  // Trakt link (best-effort)
-  if (ids.slug) {
-    parts.push(`[Trakt](https://trakt.tv/${type}s/${ids.slug})`);
-  } else if (ids.trakt) {
-    parts.push(`[Trakt](https://trakt.tv/search?query=${encodeURIComponent(title)})`);
-  }
-
-  // IMDb link
-  if (ids.imdb) {
-    parts.push(`[IMDb](https://www.imdb.com/title/${ids.imdb}/)`);
-  }
-
-  // TMDB link
-  if (ids.tmdb) {
-    const path = type === "show" ? "tv" : "movie";
-    parts.push(`[TMDB](https://www.themoviedb.org/${path}/${ids.tmdb})`);
-  }
-
-  const links = parts.length ? " — " + parts.join(" | ") : "";
-  return `• **${title}**${year}${links}`;
-}
-
+/**
+ * `/search` command for querying the user's n8n-powered Trakt workflow. Users
+ * supply a title and a media type (movie, show or both). Up to 5 results
+ * are returned as richly formatted embeds, each with a corresponding
+ * "Request" button which triggers a Jellyseerr request for that item.
+ */
 const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("search")
-    .setDescription("Search Trakt (via n8n) for a movie, TV show, or both")
+    .setDescription("Search for a movie or TV show using Trakt via n8n")
     .addStringOption((opt) =>
       opt
         .setName("query")
         .setDescription("Title to search for")
-        .setRequired(true)
+        .setRequired(true),
     )
     .addStringOption((opt) =>
       opt
         .setName("type")
-        .setDescription("What to search")
+        .setDescription("Type of media to search")
+        .setRequired(true)
         .addChoices(
-          { name: "Movies", value: "movie" },
-          { name: "TV Shows", value: "show" },
-          { name: "Both", value: "both" }
-        )
+          { name: "Movie", value: "movie" },
+          { name: "Show", value: "show" },
+          { name: "Both", value: "both" },
+        ),
     ),
   async execute(interaction) {
     const query = interaction.options.getString("query", true);
-    const type = (interaction.options.getString("type") as TraktType | null) ?? "both";
+    const type = interaction.options.getString("type", true) as
+      | "movie"
+      | "show"
+      | "both";
 
     await interaction.deferReply();
-
     try {
-      const results = await callTraktSearch(query, type);
-      if (!results.length) {
-        await interaction.editReply(`No results for \`${query}\`.`);
+      const results = await searchTrakt(query, type);
+      if (!results || results.length === 0) {
+        await interaction.editReply("No results found.");
         return;
       }
-
-      const lines = results.slice(0, 5).map(buildLinks).join("\n");
-      const embed = new EmbedBuilder()
-        .setTitle(`Results for: ${query}`)
-        .setDescription(lines)
-        .setFooter({ text: "Source: Trakt via n8n" });
-
-      await interaction.editReply({ embeds: [embed] });
-    } catch (err: any) {
+      // Prepare up to 5 embeds
+      const embeds: EmbedBuilder[] = [];
+      const buttons: ButtonBuilder[] = [];
+      results.slice(0, 5).forEach((item, index) => {
+        const embed = new EmbedBuilder()
+          .setTitle(
+            `${index + 1}. ${item.title}${item.year ? ` (${item.year})` : ''}`,
+          )
+          .setDescription(item.overview ?? "No overview available.")
+          .setColor(0x00adef)
+          .addFields(
+            { name: "Type", value: item.type, inline: true },
+            ...(item.genres && item.genres.length
+              ? [{ name: "Genres", value: item.genres.join(", "), inline: true }]
+              : []),
+            ...(item.rating
+              ? [
+                  {
+                    name: "Rating",
+                    value: item.rating.toFixed(1),
+                    inline: true,
+                  },
+                ]
+              : []),
+            ...(item.runtime
+              ? [
+                  {
+                    name: "Runtime",
+                    value: `${item.runtime} min`,
+                    inline: true,
+                  },
+                ]
+              : []),
+          );
+        if (item.poster_url) {
+          embed.setThumbnail(item.poster_url);
+        }
+        embeds.push(embed);
+        // encode tmdb ID and type into customId. Use '0' for missing tmdb.
+        const tmdbId = item.ids?.tmdb ?? 0;
+        const customId = `trakt-request:${item.type}:${tmdbId}`;
+        const button = new ButtonBuilder()
+          .setCustomId(customId)
+          .setLabel(`Request ${index + 1}`)
+          .setStyle(ButtonStyle.Primary);
+        buttons.push(button);
+      });
+      const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
+      await interaction.editReply({ embeds, components: [actionRow] });
+    } catch (err) {
       console.error(err);
-      const reason = err?.message ?? "Unknown error";
-      await interaction.editReply(`Failed to search: ${reason}`);
+      await interaction.editReply(`There was an error performing the search: ${{
+        ...(err as Error).message,
+      }}`);
     }
   },
 };

@@ -1,65 +1,70 @@
 # ts_discord_fullsend_bot
 
-A clean, batteries-included TypeScript template for a Discord bot using `discord.js` v14.
+This Discord bot template provides a solid starting point for building out
+features on top of the Discord.js library. It comes with TypeScript,
+ESLint/Prettier, environment variable validation via Zod, and a command/event
+architecture. The following functionality is included out of the box:
 
-## Features
-- Slash commands (example: `/ping`)
-- Command & event architecture
-- Hot reload dev loop with `tsx`
-- Env validation via Zod
-- ESLint + Prettier
-- Simple command registrar (guild/global)
-- CI (GitHub Actions) + optional Docker
+- `/ping`: Test command that replies with the bot's latency.
+- `/search`: Search for movies or TV shows via a user-provided n8n workflow
+  (expected to integrate with Trakt). Returns up to five results as
+  nicely formatted embeds. Each result includes a **Request** button which
+  triggers a request against your Jellyseerr instance to queue the title for
+  download. TV show requests honour the `JELLYSEERR_SERIES_DEFAULT`
+  preference when choosing which seasons to download.
+- `/downloads`: Query your qBittorrent WebUI API for currently downloading
+  torrents and display their progress, speed and ETA. Useful for keeping tabs
+  on what your YAMS stack is doing.
 
-## Quickstart
+## Configuration
+
+Copy `.env.example` to `.env` and fill in the required values:
 
 ```bash
-# 1) install deps
-npm install
-
-# 2) configure environment
 cp .env.example .env
-# Fill DISCORD_TOKEN, DISCORD_CLIENT_ID (and DISCORD_GUILD_ID for dev registration)
-
-# 3) register commands (fast in dev guild)
-npm run register:dev
-
-# 4) run with hot reload
-npm run dev
 ```
 
-### Register globally (production)
+- `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` – obtained from the Discord Developer Portal.
+- `DISCORD_GUILD_ID` – optional; set for rapid dev command registration.
+- `N8N_SEARCH_URL` – your n8n webhook URL which should accept a JSON body
+  `{ "query": string, "type": "movie"|"show"|"both" }` and return
+  `{ "results": [] }` as documented in `src/integrations/n8n.ts`.
+- `JELLYSEERR_URL`, `JELLYSEERR_API_KEY` – API endpoint and key for your
+  Jellyseerr instance.
+- `JELLYSEERR_SERIES_DEFAULT` – determines which seasons to request when
+  clicking **Request** on a TV show search result (`all`, `first`, or
+  `latest`).
+- `JELLYSEERR_4K` – set to `true` to flag requests for 4K content.
+- `QBIT_URL`, `QBIT_USERNAME`, `QBIT_PASSWORD` – connection details for your
+  qBittorrent instance. Credentials are optional if your qBittorrent WebUI
+  doesn't require authentication.
+
+## Development
+
+Install dependencies and run the bot in watch mode:
+
 ```bash
-npm run register:global
-# Note: global commands can take up to ~1 hour to propagate.
+npm install
+npm run register:dev  # register slash commands to your dev guild
+npm run dev          # runs the bot with hot reload
 ```
 
-## Getting credentials
-1. Discord Developer Portal → Application → **Bot** → Reset Token → `DISCORD_TOKEN`
-2. Application → **OAuth2** → Client information → `DISCORD_CLIENT_ID`
-3. For dev registration, set `DISCORD_GUILD_ID` to your test server's ID
-4. Invite the bot with the scopes `bot` and `applications.commands`
+For production deployments, build and run:
 
-## Scripts
-- `npm run dev` – start bot with hot reload
-- `npm run build` – compile TypeScript to `dist/`
-- `npm run start` – run the compiled bot
-- `npm run register:dev` – register slash commands to a dev guild
-- `npm run register:global` – register commands globally
-
-## Docker (optional)
 ```bash
-docker compose up --build -d
+npm run build
+npm start
 ```
 
+Or use Docker:
 
----
-### /search command (Trakt via n8n)
-This bot can search movies and TV shows using an **n8n** workflow that calls the Trakt API.
+```bash
+docker-compose up --build
+```
 
-**Setup**
-1) Set `N8N_SEARCH_URL` in `.env` to your n8n webhook URL (e.g., `https://<host>/webhook/trakt-search`).
-2) (Optional) If your webhook requires a token, set `N8N_API_KEY` and the bot will send `Authorization: Bearer <token>`.
+## Extending
 
-**Usage**
-- `/search query:<title> type:<movie|show|both>` – returns up to 5 results with quick links.
+Add new slash commands by creating a file in `src/commands/` that exports a
+`SlashCommand` and then import it in `src/index.ts` and
+`src/registerCommands.ts`. Add event listeners by adding a file in
+`src/events/` and wiring it in `src/index.ts`.
