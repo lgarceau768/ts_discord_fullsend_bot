@@ -11,12 +11,186 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        0,
+        64,
         0
       ],
       "id": "5723e954-e097-45da-8599-c166481cb9cb",
       "name": "Webhook",
       "webhookId": "b542cc0b-7f31-47cd-b9d4-7be9d81a9504"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "519fecaa-e280-4b6f-a4b0-18817ce58a90",
+              "name": "query",
+              "value": "={{ $('Webhook').item.json.body.query }}",
+              "type": "string"
+            },
+            {
+              "id": "1e4bf732-51e7-4d42-816b-fb1862a39d39",
+              "name": "type",
+              "value": "={{ $('Webhook').item.json.body.type === 'all' ? 'move,show,person,list,episode' : $('Webhook').item.json.body.type }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        0
+      ],
+      "id": "5925e408-159c-4072-81af-1b579e1ca505",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2208,
+        -128
+      ],
+      "id": "eced261d-2b13-4930-9809-eec225049488",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2720,
+        -128
+      ],
+      "id": "a5e5edfb-fa23-4225-beb2-ae4283649c5e",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e871f21e-cef7-4e03-a1ae-6fc794269ccc",
+              "name": "error",
+              "value": "={{ $json.error }}",
+              "type": "object"
+            },
+            {
+              "id": "28d4846a-4e6a-42b2-aa96-d573c6103644",
+              "name": "ok",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1456,
+        96
+      ],
+      "id": "e5f74338-7a16-4986-bf48-e0ba30458af6",
+      "name": "Set Error"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1776,
+        96
+      ],
+      "id": "f10529ba-e9be-4d01-9828-4641e1e87243",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "62134219-f4a5-457f-9336-a618522e4d8a",
+              "name": "result",
+              "value": "={{ $('Search Trakt').item.json.movie || $('Search Trakt').item.json.show || $('Search Trakt').item.json.person || $('Search Trakt').item.json.list || $('Search Trakt').item.json.episode }}",
+              "type": "object"
+            },
+            {
+              "id": "0c28e475-61b9-4e30-9c6b-fdbc2c597e1f",
+              "name": "=result.posterUrl",
+              "value": "=https://image.tmdb.org/t/p/original{{ $json.results[0].poster_path }}",
+              "type": "string"
+            },
+            {
+              "id": "adda3542-e4b9-4260-a117-c48dac177a29",
+              "name": "result.backdropUrl",
+              "value": "=https://image.tmdb.org/t/p/original{{ $json.results[0].backdrop_path }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        -224
+      ],
+      "id": "815cc2b9-a8ca-4089-9fa5-72719fe009ec",
+      "name": "Append Images"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1968,
+        -128
+      ],
+      "id": "72728cac-bef6-4288-b535-87ebdda7a82d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dfe058f0-f8af-430c-b4f6-1b41443c0a16",
+              "name": "ok",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "af1a557a-2612-42ad-bd41-9db7c87421af",
+              "name": "results",
+              "value": "={{ $json.results }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2464,
+        -128
+      ],
+      "id": "2f6e0634-bf76-440a-a879-da67851894b3",
+      "name": "Set OK"
     },
     {
       "parameters": {
@@ -48,11 +222,48 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        368,
+        480,
         0
       ],
       "id": "66cdac67-1ee9-42df-bc75-d434a1358c05",
-      "name": "HTTP Request",
+      "name": "Search Trakt",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.themoviedb.org/3/find/{{ $json.result.ids.imdb }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "external_source",
+              "value": "imdb_id"
+            },
+            {
+              "name": "api_key",
+              "value": "e1683ec3ce6caa97efe47330bb09227f"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer: eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlMTY4M2VjM2NlNmNhYTk3ZWZlNDczMzBiYjA5MjI3ZiIsIm5iZiI6MTczMDQ4NTIwOC45MjUsInN1YiI6IjY3MjUxYmQ4YTQ5OWNjMmVmNzA1MTFkNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.m-e4uP8oGrYVfzf5kcY2UYXu_6C0j-SWWfOaBWuCXCI"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        992,
+        -96
+      ],
+      "id": "e085ce0b-0421-41f1-acd6-deaab513b1ad",
+      "name": "Get Posters",
       "onError": "continueErrorOutput"
     },
     {
@@ -60,73 +271,10 @@
         "assignments": {
           "assignments": [
             {
-              "id": "519fecaa-e280-4b6f-a4b0-18817ce58a90",
-              "name": "query",
-              "value": "={{ $json.body.query }}",
-              "type": "string"
-            },
-            {
-              "id": "1e4bf732-51e7-4d42-816b-fb1862a39d39",
-              "name": "type",
-              "value": "={{ $json.body.type === 'both' ? 'move,show' : $json.body.type }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        208,
-        0
-      ],
-      "id": "5925e408-159c-4072-81af-1b579e1ca505",
-      "name": "Edit Fields"
-    },
-    {
-      "parameters": {
-        "aggregate": "aggregateAllItemData",
-        "destinationFieldName": "results",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.aggregate",
-      "typeVersion": 1,
-      "position": [
-        1136,
-        -112
-      ],
-      "id": "eced261d-2b13-4930-9809-eec225049488",
-      "name": "Aggregate"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.4,
-      "position": [
-        2000,
-        -128
-      ],
-      "id": "a5e5edfb-fa23-4225-beb2-ae4283649c5e",
-      "name": "Respond to Webhook"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "e871f21e-cef7-4e03-a1ae-6fc794269ccc",
-              "name": "error",
-              "value": "={{ $json.error }}",
+              "id": "3eb19906-7e01-4d67-b442-5ed9c9bf2140",
+              "name": "result",
+              "value": "={{ $json.movie || $json.show || $json.person || $json.list || $json.episode }}",
               "type": "object"
-            },
-            {
-              "id": "28d4846a-4e6a-42b2-aa96-d573c6103644",
-              "name": "ok",
-              "value": false,
-              "type": "boolean"
             }
           ]
         },
@@ -135,26 +283,20 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1040,
-        96
+        736,
+        -96
       ],
-      "id": "e5f74338-7a16-4986-bf48-e0ba30458af6",
-      "name": "Set Error"
+      "id": "da690e05-e8aa-4a8d-aa51-15b8c0a3d7ec",
+      "name": "Normalize"
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "dfe058f0-f8af-430c-b4f6-1b41443c0a16",
-              "name": "ok",
-              "value": true,
-              "type": "boolean"
-            },
-            {
-              "id": "af1a557a-2612-42ad-bd41-9db7c87421af",
+              "id": "81316411-9b48-4088-9e6b-1bffa90e44dd",
               "name": "results",
-              "value": "={{ $json.results }}",
+              "value": "={{ $json.movie_results || $json.tv_results || $json.person_results || $json.tv_episode_results || $json.tv_season_results }}",
               "type": "array"
             }
           ]
@@ -164,77 +306,27 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1744,
-        -160
+        1408,
+        -192
       ],
-      "id": "2f6e0634-bf76-440a-a879-da67851894b3",
-      "name": "Edit Fields1"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.4,
-      "position": [
-        1360,
-        96
-      ],
-      "id": "f10529ba-e9be-4d01-9828-4641e1e87243",
-      "name": "Respond to Webhook1"
-    },
-    {
-      "parameters": {
-        "url": "=https://api.themoviedb.org/3/find/{{ $json.show.ids.imdb }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpBearerAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "external_source",
-              "value": "imdb_id"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        576,
-        -96
-      ],
-      "id": "e085ce0b-0421-41f1-acd6-deaab513b1ad",
-      "name": "HTTP Request1",
-      "credentials": {
-        "httpBearerAuth": {
-          "id": "SWGcaqSP4jcfsd7n",
-          "name": "TMDB Token"
-        }
-      }
+      "id": "b608ecb8-e037-45a3-8f1f-4bc726098890",
+      "name": "Normalize 2"
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "62134219-f4a5-457f-9336-a618522e4d8a",
-              "name": "show",
-              "value": "={{ $('HTTP Request').item.json.show }}",
+              "id": "7fb4347b-46a3-4f11-b697-1127229ff1fb",
+              "name": "result",
+              "value": "={{ $json.result }}",
               "type": "object"
             },
             {
-              "id": "0c28e475-61b9-4e30-9c6b-fdbc2c597e1f",
-              "name": "=show.posterUrl",
-              "value": "=https://image.tmdb.org/t/p/original{{ $json.tv_results[0].poster_path }}",
-              "type": "string"
-            },
-            {
-              "id": "adda3542-e4b9-4260-a117-c48dac177a29",
-              "name": "show.backdropUrl",
-              "value": "=https://image.tmdb.org/t/p/original{{ $json.tv_results[0].backdrop_path }}",
-              "type": "string"
+              "id": "f9f8c2e3-5cc0-46d4-820b-86902aaef263",
+              "name": "result.error",
+              "value": "={{ $json.error }}",
+              "type": "object"
             }
           ]
         },
@@ -243,11 +335,11 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        832,
-        -112
+        1200,
+        0
       ],
-      "id": "815cc2b9-a8ca-4089-9fa5-72719fe009ec",
-      "name": "Append Images"
+      "id": "6b74d372-fda8-4973-af32-b68b325a92e9",
+      "name": "Append Error"
     }
   ],
   "pinData": {},
@@ -267,25 +359,7 @@
       "main": [
         [
           {
-            "node": "HTTP Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Set Error",
+            "node": "Search Trakt",
             "type": "main",
             "index": 0
           }
@@ -307,7 +381,7 @@
       "main": [
         [
           {
-            "node": "Edit Fields1",
+            "node": "Set OK",
             "type": "main",
             "index": 0
           }
@@ -319,7 +393,29 @@
         []
       ]
     },
-    "Edit Fields1": {
+    "Append Images": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set OK": {
       "main": [
         [
           {
@@ -330,7 +426,54 @@
         ]
       ]
     },
-    "HTTP Request1": {
+    "Search Trakt": {
+      "main": [
+        [
+          {
+            "node": "Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Posters": {
+      "main": [
+        [
+          {
+            "node": "Normalize 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize": {
+      "main": [
+        [
+          {
+            "node": "Get Posters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize 2": {
       "main": [
         [
           {
@@ -341,13 +484,13 @@
         ]
       ]
     },
-    "Append Images": {
+    "Append Error": {
       "main": [
         [
           {
-            "node": "Aggregate",
+            "node": "Merge",
             "type": "main",
-            "index": 0
+            "index": 1
           }
         ]
       ]
@@ -357,7 +500,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "5dd81ffa-5c8e-4cf8-b3ac-e4906d2a492f",
+  "versionId": "fc306d61-ae7a-43db-9f8d-6a02d09eda59",
   "meta": {
     "instanceId": "cd0d7f146754457eb7741969d4a6dc0e6e273a405f2c74c1127814f80a852a1e"
   },

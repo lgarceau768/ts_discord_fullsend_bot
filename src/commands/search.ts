@@ -11,8 +11,8 @@ import { callTraktSearch, type TraktType } from "../integrations/n8n.js";
 type FlatItem = {
   type: "movie" | "show";
   title: string;
-  year?: number;
-  ids?: {
+  year: number;
+  ids: {
     trakt?: number;
     tmdb?: number;
     imdb?: string;
@@ -20,15 +20,11 @@ type FlatItem = {
     tvdb?: number;
     tvrage?: number | null;
   };
-  overview?: string;
+  overview: string;
 
   // New camelCase fields from your n8n job
   posterUrl?: string;
   backdropUrl?: string;
-
-  // Back-compat with older snake_case we used before
-  poster_url?: string;
-  backdrop_url?: string;
 
   genres?: string[];
   rating?: number;
@@ -85,9 +81,6 @@ function normalizeResult(rawIn: any): FlatItem | null {
       overview: raw.overview,
       posterUrl: pickPoster(raw, raw),
       backdropUrl: pickBackdrop(raw, raw),
-      // Keep snake_case too for any other callers
-      poster_url: pickPoster(raw, raw),
-      backdrop_url: pickBackdrop(raw, raw),
       genres: raw.genres ?? [],
       rating: raw.rating,
       runtime: raw.runtime,
@@ -118,8 +111,6 @@ function normalizeResult(rawIn: any): FlatItem | null {
     overview: obj?.overview ?? raw?.overview,
     posterUrl: poster,
     backdropUrl: backdrop,
-    poster_url: poster,
-    backdrop_url: backdrop,
     genres: obj?.genres ?? [],
     rating: obj?.rating,
     runtime: obj?.runtime,
@@ -154,19 +145,20 @@ const digits = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "
 
 function itemToEmbed(item: FlatItem, index?: number): EmbedBuilder {
   const n = index != null ? `${digits[index] ?? index + 1} ` : "";
+  const overview = item.overview?.length > 0 ? item.overview : "Unknown";
   const title = [item.title, item.year ? `(${item.year})` : null]
       .filter(Boolean)
       .join(" ");
   const embed = new EmbedBuilder()
       .setTitle(n + title)
-      .setDescription(truncate(item.overview))
+      .setDescription(truncate(overview))
       .setFooter({
         text: item.type === "show" ? "TV Show • Trakt via n8n" : "Movie • Trakt via n8n",
       });
 
   // Show poster as thumbnail, backdrop as large image if provided
-  const poster = item.posterUrl ?? item.poster_url;
-  const backdrop = item.backdropUrl ?? item.backdrop_url;
+  const poster = item.posterUrl ?? false;
+  const backdrop = item.backdropUrl ?? false;
   if (poster) embed.setThumbnail(poster);
   if (backdrop) embed.setImage(backdrop);
 
@@ -228,7 +220,10 @@ const command: SlashCommand = {
               .addChoices(
                   { name: "Movies", value: "movie" },
                   { name: "TV Shows", value: "show" },
-                  { name: "Both", value: "both" },
+                  { name: "Person", value: "person" },
+                  { name: "List", value: "list" },
+                  { name: "Episode", value: "episode" },
+                  { name: "All", value: "all" },
               ),
       ),
   async execute(interaction) {

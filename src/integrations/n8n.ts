@@ -30,25 +30,27 @@ export type SearchItem = {
   network?: string;  // for shows
 };
 
-type RawTraktResult =
-    | {
-  type?: "movie" | "show";
-  score?: number;
-  show?: any;
-  movie?: any;
+type RawTraktResult = {
+  ok: boolean;
+  result: {
+    type?: "movie" | "show";
+    score?: number;
+    show?: any;
+    movie?: any;
 
-  // cases where your workflow already flattened these:
-  title?: string;
-  year?: number;
-  ids?: Record<string, any>;
-  overview?: string;
+    // cases where your workflow already flattened these:
+    title?: string;
+    year?: number;
+    ids?: Record<string, any>;
+    overview?: string;
 
-  // image hints in various shapes
-  posterUrl?: string;  // new camelCase
-  backdropUrl?: string;
-  poster_url?: string; // legacy snake_case
-  backdrop_url?: string;
-  images?: { poster?: { url?: string }; backdrop?: { url?: string } };
+    // image hints in various shapes
+    posterUrl?: string;  // new camelCase
+    backdropUrl?: string;
+    poster_url?: string; // legacy snake_case
+    backdrop_url?: string;
+    images?: { poster?: { url?: string }; backdrop?: { url?: string } };
+  }
 }
     | string; // sometimes items arrive as JSON strings
 
@@ -86,26 +88,24 @@ function pickBackdrop(raw: any, obj: any): string | undefined {
 }
 
 function normalizeResult(rawIn: RawTraktResult): SearchItem | null {
-  const raw = safeParse<any>(rawIn);
+  const raw = safeParse<any>(rawIn).result ?? {};
 
   // Already flat?
   if (raw && raw.title && (raw.type === "show" || raw.type === "movie") && !raw.show && !raw.movie) {
     const poster = pickPoster(raw, raw);
     const backdrop = pickBackdrop(raw, raw);
     return {
-      type: raw.type,
-      title: raw.title,
-      year: raw.year,
+      type: raw.type ?? '',
+      title: raw.title ?? '',
+      year: raw.year ?? '',
       ids: raw.ids ?? {},
-      overview: raw.overview,
+      overview: raw.overview ?? '',
       posterUrl: poster,
       backdropUrl: backdrop,
-      poster_url: poster,
-      backdrop_url: backdrop,
       genres: raw.genres ?? [],
-      rating: raw.rating,
-      runtime: raw.runtime,
-      network: raw.network,
+      rating: raw.rating ?? '',
+      runtime: raw.runtime ?? '',
+      network: raw.network ?? '',
     };
   }
 
@@ -113,7 +113,7 @@ function normalizeResult(rawIn: RawTraktResult): SearchItem | null {
   const kind: "movie" | "show" = raw?.type === "show" || raw?.show ? "show" : "movie";
   const obj = raw?.show ?? raw?.movie ?? raw ?? {};
 
-  const firstAiredYear = obj.first_aired ? new Date(obj.first_aired).getFullYear() : undefined;
+  const firstAiredYear = obj.first_aired ? new Date(obj.first_aired).getFullYear() : '';
   const poster = pickPoster(raw, obj);
   const backdrop = pickBackdrop(raw, obj);
 
@@ -125,8 +125,6 @@ function normalizeResult(rawIn: RawTraktResult): SearchItem | null {
     overview: obj?.overview ?? raw?.overview,
     posterUrl: poster,
     backdropUrl: backdrop,
-    poster_url: poster,
-    backdrop_url: backdrop,
     genres: obj?.genres ?? [],
     rating: obj?.rating,
     runtime: obj?.runtime,
