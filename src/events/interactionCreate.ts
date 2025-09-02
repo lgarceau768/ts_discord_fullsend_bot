@@ -1,128 +1,122 @@
 import {
-  Client,
-  Collection,
-  ChatInputCommandInteraction,
   Events,
-  Interaction,
-  ButtonInteraction,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  type Client,
+  type Collection,
+  type ChatInputCommandInteraction,
 } from "discord.js";
-import { requestMovie, requestTV, getTV } from "../integrations/jellyseerr.js";
-import { env } from "../config.js";
+import { createRequest, getDetails, pickDefaultSeasons } from "../integrations/jellyseerr.js";
+import { ensureChildThread } from "../utils/thread.js";
 
 type CommandMap = Collection<string, any>;
 
-/**
- * Central handler for all Discord interactions. Routes slash commands to
- * their implementations and processes custom button interactions generated
- * by the search command to create Jellyseerr requests.
- */
 export default (client: Client, commands: CommandMap) => {
-  client.on(Events.InteractionCreate, async (interaction: Interaction) => {
-    // Handle slash commands
+  client.on(Events.InteractionCreate, async (interaction) => {
+    // ---- Slash commands (unchanged)
     if (interaction.isChatInputCommand()) {
-      const command = commands.get(interaction.commandName);
-      if (!command) {
+      const cmd = commands.get(interaction.commandName);
+      if (!cmd) {
         await interaction.reply({ content: "Unknown command.", ephemeral: true });
         return;
       }
-      try {
-        await command.execute(interaction as ChatInputCommandInteraction);
-      } catch (err) {
-        console.error(err);
-        if (interaction.replied || interaction.deferred) {
-          await interaction.editReply(
-            "There was an error while executing this command.",
-          );
-        } else {
-          await interaction.reply({
-            content: "There was an error while executing this command.",
-            ephemeral: true,
-          });
-        }
-      }
+      await cmd.execute(interaction as ChatInputCommandInteraction);
       return;
     }
 
-    // Handle button interactions for Jellyseerr requests
+    // ======================
+    // Buttons on search msg
+    // ======================
     if (interaction.isButton()) {
-      const customId = interaction.customId;
-      if (customId.startsWith("trakt-request:")) {
-        await handleTraktRequestButton(interaction);
+      const id = interaction.customId ?? "";
+      if (!id.startsWith("req:")) return;
+
+      // ACK immediately so we never hit the 3s timeout
+      await interaction.deferUpdate();
+
+      const [, kind, tmdbStr, idxStr] = id.split(":");
+      const tmdbId = Number(tmdbStr);
+      const idx = Number(idxStr) || 0;
+
+      // Create or reuse a child thread off the search message
+      const parentMsg = interaction.message;
+      const guessTitle = parentMsg.embeds?.[idx]?.title ?? "trakt-requests";
+      // @ts-ignore
+      const thread = await ensureChildThread(parentMsg, `trakt: ${guessTitle}`);
+
+      const who = `<@${interaction.user.id}>`;
+
+      if (kind === "movie") {
+        const status = await thread.send(`${who} 🎬 Submitting movie request (TMDB ${tmdbId})…`);
+        try {
+          await createRequest("movie", tmdbId);
+          await status.edit(`✅ ${who} Movie request submitted to Jellyseerr (TMDB ${tmdbId}).`);
+        } catch (e: any) {
+          await status.edit(`❌ ${who} Failed to request movie: ${e?.message ?? "Unknown error"}`);
+        }
         return;
       }
+
+      if (kind === "tv") {
+        // Post a season picker **in the thread**
+        const menu = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+            new StringSelectMenuBuilder()
+                .setCustomId(`seasonpick:${tmdbId}`)
+                .setPlaceholder("Pick seasons to request")
+                .addOptions(
+                    { label: "All seasons", value: "all" },
+                    { label: "First season only", value: "first" },
+                    { label: "Latest season only", value: "latest" },
+                )
+        );
+        await thread.send({
+          content: `${who} 📺 Which seasons would you like to request for TMDB ${tmdbId}?`,
+          components: [menu],
+        });
+        return;
+      }
+
+      return;
     }
-    // Other interactions (e.g. select menus) are not used in this implementation
+
+    // ==========================
+    // Season picker in the thread
+    // ==========================
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith("seasonpick:")) {
+      // ACK now; we'll edit the menu message after the API call
+      await interaction.deferUpdate();
+
+      const tmdbId = Number(interaction.customId.split(":")[1]);
+      const choice = interaction.values[0]; // all | first | latest
+
+      try {
+        const details = await getDetails("tv", tmdbId);
+        const total =
+            Array.isArray(details.seasons)
+                ? details.seasons.filter(s => (s?.seasonNumber ?? 0) > 0).length
+                : 0;
+
+        let seasons =
+            choice === "all" ? Array.from({ length: total }, (_, i) => i + 1)
+                : choice === "latest" ? [Math.max(1, total)]
+                    : [1];
+
+        if (!seasons.length) seasons = pickDefaultSeasons(total);
+
+        await createRequest("tv", tmdbId, seasons);
+
+        // This updates the thread message that contained the menu
+        await interaction.message.edit({
+          content: `✅ TV request submitted for seasons ${seasons.join(", ")} (TMDB ${tmdbId}).`,
+          components: [],
+        });
+      } catch (e: any) {
+        await interaction.message.edit({
+          content: `❌ Failed to request TV show (TMDB ${tmdbId}): ${e?.message ?? "Unknown error"}`,
+          components: [],
+        });
+      }
+      return;
+    }
   });
 };
-
-/**
- * Process a button click on a Trakt result. The button customId is
- * formatted as `trakt-request:<type>:<tmdbId>`. Depending on the type, this
- * function will either call `requestMovie` or `requestTV` using sensible
- * defaults. Errors are caught and returned to the user as an ephemereal
- * response.
- */
-async function handleTraktRequestButton(interaction: ButtonInteraction) {
-  const parts = interaction.customId.split(":");
-  // parts[0] = 'trakt-request'
-  const type = parts[1];
-  const tmdbIdString = parts[2];
-  const tmdbId = parseInt(tmdbIdString, 10);
-  if (!tmdbId || isNaN(tmdbId)) {
-    await interaction.reply({
-      content: "Unable to determine TMDb ID for this item.",
-      ephemeral: true,
-    });
-    return;
-  }
-  try {
-    if (type === "movie") {
-      await requestMovie(tmdbId);
-      await interaction.reply({
-        content: `✅ Your request for the movie (TMDb ${tmdbId}) has been submitted!`,
-        ephemeral: true,
-      });
-    } else if (type === "show") {
-      // For TV shows, decide which seasons to request. Use default if defined.
-      const info = await getTV(tmdbId);
-      // Extract all available season numbers (skip specials numbered 0)
-      const seasons: number[] = Array.isArray(info.seasons)
-        ? info.seasons
-            .map((s: any) => s.seasonNumber)
-            .filter((n: number) => n > 0)
-        : [];
-      let toRequest: number[];
-      switch (env.JELLYSEERR_SERIES_DEFAULT) {
-        case "all":
-          toRequest = seasons;
-          break;
-        case "latest":
-          toRequest = seasons.length ? [Math.max(...seasons)] : [];
-          break;
-        case "first":
-        default:
-          toRequest = seasons.length ? [Math.min(...seasons)] : [];
-          break;
-      }
-      if (toRequest.length === 0) {
-        throw new Error("No seasons found for this TV show.");
-      }
-      await requestTV(tmdbId, toRequest);
-      await interaction.reply({
-        content: `✅ Your request for the TV show (TMDb ${tmdbId}) has been submitted for season(s) ${toRequest.join(", ")}.`,
-        ephemeral: true,
-      });
-    } else {
-      await interaction.reply({
-        content: `Unsupported media type: ${type}`,
-        ephemeral: true,
-      });
-    }
-  } catch (err) {
-    console.error(err);
-    await interaction.reply({
-      content: `Failed to create request: ${err instanceof Error ? err.message : "unknown error"}`,
-      ephemeral: true,
-    });
-  }
-}
