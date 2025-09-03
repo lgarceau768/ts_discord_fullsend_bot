@@ -2,10 +2,18 @@ import { env } from "../config.js";
 
 export type TraktType = "movie" | "show" | "both";
 
+export type TrackN8NResponse = {
+  results: SearchItem[]
+  ok: boolean;
+  query: string;
+  query_original: string;
+}
+
 export type SearchItem = {
   type: "movie" | "show";
   title: string;
   year?: number;
+  result?: SearchItem;
   ids?: {
     trakt?: number;
     tmdb?: number;
@@ -30,41 +38,6 @@ export type SearchItem = {
   network?: string;  // for shows
 };
 
-type RawTraktResult = {
-  ok: boolean;
-  result: {
-    type?: "movie" | "show";
-    score?: number;
-    show?: any;
-    movie?: any;
-
-    // cases where your workflow already flattened these:
-    title?: string;
-    year?: number;
-    ids?: Record<string, any>;
-    overview?: string;
-
-    // image hints in various shapes
-    posterUrl?: string;  // new camelCase
-    backdropUrl?: string;
-    poster_url?: string; // legacy snake_case
-    backdrop_url?: string;
-    images?: { poster?: { url?: string }; backdrop?: { url?: string } };
-  }
-}
-    | string; // sometimes items arrive as JSON strings
-
-type N8nResponse =
-    | { results?: RawTraktResult[] }
-    | RawTraktResult[];
-
-function safeParse<T = any>(v: unknown): T {
-  if (typeof v === "string") {
-    try { return JSON.parse(v) as T; } catch { return v as T; }
-  }
-  return v as T;
-}
-
 function pickPoster(raw: any, obj: any): string | undefined {
   return (
       raw?.posterUrl ??
@@ -87,8 +60,8 @@ function pickBackdrop(raw: any, obj: any): string | undefined {
   );
 }
 
-function normalizeResult(rawIn: RawTraktResult): SearchItem | null {
-  const raw = safeParse<any>(rawIn).result ?? {};
+function normalizeResult(raw: any): SearchItem | null {
+  raw = raw.result ?? {};
 
   // Already flat?
   if (raw && raw.title && (raw.type === "show" || raw.type === "movie") && !raw.show && !raw.movie) {
@@ -104,7 +77,6 @@ function normalizeResult(rawIn: RawTraktResult): SearchItem | null {
       backdropUrl: backdrop,
       genres: raw.genres ?? [],
       rating: raw.rating ?? '',
-      runtime: raw.runtime ?? '',
       network: raw.network ?? '',
     };
   }
@@ -141,7 +113,7 @@ function normalizeResult(rawIn: RawTraktResult): SearchItem | null {
 export async function callTraktSearch(
     query: string,
     type: TraktType = "both"
-): Promise<SearchItem[]> {
+): Promise<TrackN8NResponse> {
   if (!env.N8N_SEARCH_URL) {
     throw new Error("N8N_SEARCH_URL is not configured");
   }
@@ -160,13 +132,15 @@ export async function callTraktSearch(
     throw new Error(`n8n webhook failed (${res.status}): ${text || res.statusText}`);
   }
 
-  const data = (await res.json()) as N8nResponse;
-  const rawList: RawTraktResult[] = Array.isArray(data) ? data : data.results ?? [];
+  const data = (await res.json()) as TrackN8NResponse;
 
-  const normalized = rawList
-      .map(normalizeResult)
-      .filter((x): x is SearchItem => Boolean(x));
+  const normalized = data.results.map(normalizeResult).filter((x): x is SearchItem => Boolean(x));
 
   // keep responses compact for Discord
-  return normalized.slice(0, 5);
+  return {
+    results: normalized.slice(0, 5),
+    ok: res.ok,
+    query: data.query,
+    query_original: data.query_original
+  };
 }
