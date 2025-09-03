@@ -275,6 +275,12 @@
               "name": "result",
               "value": "={{ $json.movie || $json.show || $json.person || $json.list || $json.episode }}",
               "type": "object"
+            },
+            {
+              "id": "bc74d4aa-6b49-4218-a69f-6b769222fda7",
+              "name": "result.type",
+              "value": "={{ $json.type }}",
+              "type": "string"
             }
           ]
         },
@@ -296,7 +302,7 @@
             {
               "id": "81316411-9b48-4088-9e6b-1bffa90e44dd",
               "name": "results",
-              "value": "={{ $json.movie_results || $json.tv_results || $json.person_results || $json.tv_episode_results || $json.tv_season_results }}",
+              "value": "={{ []\n  .concat(\n    $json.movie_results || [],\n    $json.tv_results || [],\n    $json.person_results || [],\n    $json.tv_episode_results || [],\n    $json.tv_season_results || []\n  )\n}}",
               "type": "array"
             }
           ]
@@ -306,7 +312,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1408,
+        1328,
         -192
       ],
       "id": "b608ecb8-e037-45a3-8f1f-4bc726098890",
@@ -500,7 +506,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "fc306d61-ae7a-43db-9f8d-6a02d09eda59",
+  "versionId": "0f16cfb7-a18f-475e-b43e-171cf99a9a31",
   "meta": {
     "instanceId": "cd0d7f146754457eb7741969d4a6dc0e6e273a405f2c74c1127814f80a852a1e"
   },

@@ -1,3 +1,4 @@
+// src/integrations/jellyseerr.ts
 import { env } from "../config.js";
 
 export type MediaType = "movie" | "tv";
@@ -6,7 +7,7 @@ type JellyseerrMediaInfo = {
   status?: number; // 1=Pending, 2=Approved, 3=Processing, 4=Available, ...
 };
 
-type JellyseerrDetails = {
+export type JellyseerrDetails = {
   id: number; // TMDB id
   name?: string; // tv
   title?: string; // movie
@@ -16,93 +17,30 @@ type JellyseerrDetails = {
   seasons?: Array<{ seasonNumber: number }>;
 };
 
-/**
- * Perform a POST request to Jellyseerr to create a movie request. The
- * `mediaId` refers to the TMDb ID. Optionally specify if 4K should be
- * requested.
- */
-export async function requestMovie(
-  tmdbId: number,
-  is4k = env.JELLYSEERR_4K === "true",
-): Promise<any> {
-  if (!env.JELLYSEERR_URL || !env.JELLYSEERR_API_KEY) {
-    throw new Error("JELLYSEERR_URL and JELLYSEERR_API_KEY must be set for movie requests");
-  }
-  const url = `${env.JELLYSEERR_URL}/api/v1/request`;
-  const body = JSON.stringify({
-    mediaId: tmdbId,
-    mediaType: "movie",
-    is4k,
-  });
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Api-Key": env.JELLYSEERR_API_KEY,
-    },
-    body,
-  });
-  if (!res.ok) {
-    throw new Error(`Jellyseerr movie request failed with status ${res.status}`);
-  }
-  return await res.json();
-}
+export type RequestOptions = {
+  /** Request 4K quality profile (if configured). */
+  is4k?: boolean;
+  /** Auto-approve the request (if your Jellyseerr permissions allow). */
+  isAutoApprove?: boolean;
+  /** Auto-download immediately (when approved). */
+  isAutoDownload?: boolean;
+  /** Trigger indexer/search immediately after creating the request. */
+  searchNow?: boolean;
 
-/**
- * Perform a POST request to Jellyseerr to create a TV show request. Pass
- * an array of season numbers to request. When `is4k` is true the request
- * is flagged for 4K. The `seasons` array must be non-empty.
- */
-export async function requestTV(
-  tmdbId: number,
-  seasons: number[],
-  is4k = env.JELLYSEERR_4K === "true",
-): Promise<any> {
-  if (!env.JELLYSEERR_URL || !env.JELLYSEERR_API_KEY) {
-    throw new Error("JELLYSEERR_URL and JELLYSEERR_API_KEY must be set for TV requests");
-  }
-  const url = `${env.JELLYSEERR_URL}/api/v1/request`;
-  const body = JSON.stringify({
-    mediaId: tmdbId,
-    mediaType: "tv",
-    seasons,
-    is4k,
-  });
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Api-Key": env.JELLYSEERR_API_KEY,
-    },
-    body,
-  });
-  if (!res.ok) {
-    throw new Error(`Jellyseerr TV request failed with status ${res.status}`);
-  }
-  return await res.json();
-}
+  /** Sonarr/Radarr server selection (numeric id in Jellyseerr). */
+  serverId?: number;
+  /** Quality profile id (Sonarr/Radarr). */
+  profileId?: number;
+  /** Root folder path or id (string as the API expects). */
+  rootFolder?: string;
+  /** Language profile id (Sonarr only). */
+  languageProfileId?: number;
+  /** Tag ids applied to created series/movie in Sonarr/Radarr. */
+  tags?: number[];
 
-/**
- * Fetch detailed information about a TV show from Jellyseerr. The response
- * includes season information which is used to determine which seasons to
- * request. See Jellyseerr API documentation for the exact shape of the
- * returned object.
- */
-export async function getTV(tmdbId: number): Promise<any> {
-  if (!env.JELLYSEERR_URL || !env.JELLYSEERR_API_KEY) {
-    throw new Error("JELLYSEERR_URL and JELLYSEERR_API_KEY must be set to fetch TV info");
-  }
-  const url = `${env.JELLYSEERR_URL}/api/v1/tv/${tmdbId}`;
-  const res = await fetch(url, {
-    headers: {
-      "X-Api-Key": env.JELLYSEERR_API_KEY,
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`Jellyseerr getTV failed with status ${res.status}`);
-  }
-  return await res.json();
-}
+  /** For TV requests you can pass explicit season numbers. */
+  seasons?: number[];
+};
 
 function baseUrl(): string {
   if (!env.JELLYSEERR_URL) throw new Error("JELLYSEERR_URL is not configured");
@@ -115,27 +53,107 @@ function authHeaders(): Record<string, string> {
   return h;
 }
 
-export async function getDetails(mediaType: MediaType, tmdbId: number): Promise<JellyseerrDetails> {
-  const res = await fetch(`${baseUrl()}/api/v1/${mediaType === "tv" ? "tv" : "movie"}/${tmdbId}`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error(`Jellyseerr GET ${res.status}: ${await res.text().catch(()=>"")}`);
+function parseBool(v: unknown): boolean | undefined {
+  if (v == null) return undefined;
+  const s = String(v).trim().toLowerCase();
+  if (["1", "true", "yes", "y", "on"].includes(s)) return true;
+  if (["0", "false", "no", "n", "off"].includes(s)) return false;
+  return undefined;
+}
+
+function parseNum(v: unknown): number | undefined {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function parseTagCsv(v: unknown): number[] | undefined {
+  if (!v) return undefined;
+  const arr = String(v)
+      .split(",")
+      .map((x) => Number(x.trim()))
+      .filter((n) => Number.isInteger(n) && n >= 0);
+  return arr.length ? Array.from(new Set(arr)) : undefined;
+}
+
+/** Build default RequestOptions from environment variables (all optional). */
+function defaultsFromEnv(): RequestOptions {
+  return {
+    is4k: parseBool(env.JELLYSEERR_4K),
+    isAutoApprove: parseBool(env.JELLYSEERR_AUTO_APPROVE),
+    isAutoDownload: parseBool(env.JELLYSEERR_AUTO_DOWNLOAD),
+    searchNow: parseBool(env.JELLYSEERR_SEARCH_NOW),
+  };
+}
+
+export async function getDetails(
+    mediaType: MediaType,
+    tmdbId: number
+): Promise<JellyseerrDetails> {
+  const res = await fetch(
+      `${baseUrl()}/api/v1/${mediaType === "tv" ? "tv" : "movie"}/${tmdbId}`,
+      { headers: authHeaders() }
+  );
+  if (!res.ok)
+    throw new Error(`Jellyseerr GET ${res.status}: ${await res.text().catch(() => "")}`);
   return res.json();
 }
 
+/**
+ * Create a request in Jellyseerr.
+ *
+ * Backward compatible call styles:
+ *   - Movies: createRequest("movie", tmdbId)
+ *   - TV (explicit seasons): createRequest("tv", tmdbId, [1,2,3])
+ *   - Advanced: createRequest("movie"|"tv", tmdbId, { ...RequestOptions })
+ *   - Advanced TV + seasons: createRequest("tv", tmdbId, { seasons: [1,2], ... })
+ */
 export async function createRequest(
     mediaType: MediaType,
     tmdbId: number,
-    seasons?: number[],
+    seasonsOrOptions?: number[] | RequestOptions
 ): Promise<any> {
-  const body: any = { mediaId: tmdbId, mediaType, is4k: env.JELLYSEERR_4K === "true" };
-  if (mediaType === "tv" && seasons?.length) body.seasons = seasons;
+  const envDefaults = defaultsFromEnv();
+
+  let options: RequestOptions = {};
+  if (Array.isArray(seasonsOrOptions)) {
+    options.seasons = seasonsOrOptions;
+  } else if (seasonsOrOptions && typeof seasonsOrOptions === "object") {
+    options = { ...seasonsOrOptions };
+  }
+
+  // Fill in undefined fields from env defaults
+  const merged: RequestOptions = { ...envDefaults, ...options };
+
+  // Build body per Jellyseerr /request schema
+  const body: any = {
+    mediaType,               // "movie" | "tv"
+    mediaId: tmdbId,         // TMDB id
+  };
+
+  if (mediaType === "tv" && merged.seasons?.length) {
+    body.seasons = merged.seasons;
+  }
+
+  if (merged.is4k !== undefined) body.is4k = merged.is4k;
+  if (merged.isAutoApprove !== undefined) body.isAutoApprove = merged.isAutoApprove;
+  if (merged.isAutoDownload !== undefined) body.isAutoDownload = merged.isAutoDownload;
+  if (merged.searchNow !== undefined) body.searchNow = merged.searchNow;
+
+  if (merged.serverId !== undefined) body.serverId = merged.serverId;
+  if (merged.profileId !== undefined) body.profileId = merged.profileId;
+  if (merged.rootFolder !== undefined) body.rootFolder = merged.rootFolder;
+  if (merged.languageProfileId !== undefined) body.languageProfileId = merged.languageProfileId;
+  if (merged.tags && merged.tags.length) body.tags = merged.tags;
+
   const res = await fetch(`${baseUrl()}/api/v1/request`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Jellyseerr POST ${res.status}: ${await res.text().catch(()=>"")}`);
+
+  if (!res.ok)
+    throw new Error(`Jellyseerr POST ${res.status}: ${await res.text().catch(() => "")}`);
+
   return res.json();
 }
 
