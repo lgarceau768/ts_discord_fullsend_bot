@@ -14,6 +14,7 @@ function parseSeasons(input: string | null, total: number): number[] | "all" | "
 }
 
 export default {
+    // @ts-ignore
     data: new SlashCommandBuilder()
         .setName("request")
         .setDescription("Request an item from the most recent /search results in this thread")

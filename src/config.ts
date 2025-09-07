@@ -18,6 +18,9 @@ export interface ENV_SCHEMA {
     JELLYSEERR_API_KEY?: string;
     JELLYSEERR_SERIES_DEFAULT: "all" | "first" | "latest";
     JELLYSEERR_4K: "true" | "false";
+    JELLYSEERR_AUTO_APPROVE: boolean;
+    JELLYSEERR_AUTO_DOWNLOAD: boolean;
+    JELLYSEERR_SEARCH_NOW: boolean;
 
     QBIT_URL?: string;
     QBIT_USERNAME?: string;
