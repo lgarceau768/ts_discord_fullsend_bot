@@ -1,0 +1,20 @@
+# docker-compose.yml
+version: "3.9"
+
+services:
+  discord-bot:
+    image: node:20
+    container_name: discord-bot
+    working_dir: /app
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    command: sh -c "npm ci || npm install && npm run dev"
+    environment:
+      - NODE_ENV=development
+    network_mode: "host"      # <-- Host networking (Linux)
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+
