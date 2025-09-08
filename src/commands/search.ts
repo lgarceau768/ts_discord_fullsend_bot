@@ -53,7 +53,8 @@ export default {
                   { name: "Movies", value: "movie" },
                   { name: "TV Shows", value: "show" },
                   { name: "Both", value: "both" },
-              ),
+              )
+              .setRequired(true),
       ),
   execute: async function (interaction) {
     const query = interaction.options.getString("query", true);
@@ -118,8 +119,12 @@ export default {
       setForThread(thread.id, entry);
       setForChannel(interaction.channelId, entry);
     } catch (err: any) {
-      const reason = err?.message ?? "Unknown error";
-      await interaction.editReply(`Failed to search: ${reason}`);
+      if ((err?.message as string).indexOf('fetch') != -1) {
+        await interaction.editReply(`Failed to search due to a network issue`)
+      } else {
+        const reason = err?.message ?? "Unknown error";
+        await interaction.editReply(`Failed to search: ${reason}`);
+      }
     }
   },
 } satisfies SlashCommand;
