@@ -12,6 +12,7 @@ export interface ENV_SCHEMA {
     LOG_LEVEL: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
 
     N8N_SEARCH_URL?: string;
+    N8N_PLANT_URL?: string;
     N8N_API_KEY?: string;
 
     JELLYSEERR_URL?: string;

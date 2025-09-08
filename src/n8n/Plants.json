@@ -1,0 +1,556 @@
+{
+  "name": "Plant API (Discord bot) - Compat",
+  "nodes": [
+    {
+      "id": "Webhook-PlantAPI",
+      "name": "Webhook: /plant-api",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [160, 260],
+      "parameters": {
+        "path": "plant-api",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "webhookId": ""
+    },
+    {
+      "id": "Fn-Parse",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [400, 260],
+      "parameters": {
+        "functionCode": "const body = $json.body ?? $json;\nconst action = String(body.action || '').trim();\nif (!action) {\n  return [{ json: { ok:false, error:'Missing action' } }];\n}\nconst out = {\n  action,\n  userId: body.userId || body.user_id || '',\n  guildId: body.guildId || body.guild_id || undefined,\n  channelId: body.channelId || body.channel_id || undefined,\n  id: body.id != null ? Number(body.id) : undefined,\n  name: body.name,\n  species: body.species,\n  location: body.location,\n  light: body.light,\n  notes: body.notes,\n  photoUrl: body.photoUrl || body.photo_url,\n  water_interval_days: body.waterIntervalDays ?? body.water_interval_days,\n  filter_species: body.species || undefined,\n  filter_location: body.location || undefined,\n  amount_l: body.amountL ?? body.amount_l,\n  note: body.note,\n  imageUrl: body.imageUrl || body.image_url,\n  enabled: (body.enabled === true || body.enabled === false) ? body.enabled : undefined,\n  time: body.time,\n  reminder_channelId: body.channelId || body.channel_id,\n  reminder_guildId: body.guildId || body.guild_id,\n  reminder_waterDays: body.waterIntervalDays ?? body.water_interval_days,\n  now: Date.now()\n};\nreturn [{ json: out }];"
+      }
+    },
+    {
+      "id": "IF-Create",
+      "name": "IF create",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 60],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"action\"]}}",
+              "operation": "equal",
+              "value2": "create"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "IF-Get",
+      "name": "IF get",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 120],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"action\"]}}",
+              "operation": "equal",
+              "value2": "get"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "IF-List",
+      "name": "IF list",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 180],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"action\"]}}",
+              "operation": "equal",
+              "value2": "list"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "IF-Update",
+      "name": "IF update",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 240],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"action\"]}}",
+              "operation": "equal",
+              "value2": "update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "IF-Delete",
+      "name": "IF delete",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"action\"]}}",
+              "operation": "equal",
+              "value2": "delete"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "IF-Water",
+      "name": "IF water",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 360],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"action\"]}}",
+              "operation": "equal",
+              "value2": "water"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "IF-PhotoAdd",
+      "name": "IF photo.add",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 420],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"action\"]}}",
+              "operation": "equal",
+              "value2": "photo.add"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "IF-ReminderSet",
+      "name": "IF reminder.set",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 480],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"action\"]}}",
+              "operation": "equal",
+              "value2": "reminder.set"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Respond-Unknown",
+      "name": "Respond (unknown)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 560],
+      "parameters": {
+        "responseCode": 400,
+        "responseBody": "={{ { ok:false, error: `Unknown action: ${$json.action}` } }}"
+      }
+    },
+    {
+      "id": "PG-Create",
+      "name": "PG Create",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 60],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO plants (\n  user_id, name, species, location, light, notes, photo_url, water_interval_days, last_watered_at, next_water_due_at, updated_at\n) VALUES (\n  $1, $2, $3, $4, $5, $6, $7, $8,\n  NOW(),\n  CASE WHEN $8::int IS NOT NULL THEN NOW() + ($8::text || ' days')::interval ELSE NULL END,\n  NOW()\n) RETURNING *;",
+        "additionalFields": {
+          "queryParams": [
+            { "value": "={{$json.userId}}" },
+            { "value": "={{$json.name}}" },
+            { "value": "={{$json.species}}" },
+            { "value": "={{$json.location}}" },
+            { "value": "={{$json.light}}" },
+            { "value": "={{$json.notes}}" },
+            { "value": "={{$json.photoUrl}}" },
+            { "value": "={{$json.water_interval_days}}" }
+          ]
+        }
+      },
+      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+    },
+    {
+      "id": "Respond-Create",
+      "name": "Respond (create)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 60],
+      "parameters": {
+        "responseCode": 200,
+        "responseBody": "={{ { ok:true, data: $json.rows?.[0] || null } }}"
+      }
+    },
+    {
+      "id": "PG-Get",
+      "name": "PG Get",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 120],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM plants WHERE id=$1 AND user_id=$2;",
+        "additionalFields": {
+          "queryParams": [
+            { "value": "={{$json.id}}" },
+            { "value": "={{$json.userId}}" }
+          ]
+        }
+      },
+      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+    },
+    {
+      "id": "Respond-Get",
+      "name": "Respond (get)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 120],
+      "parameters": {
+        "responseCode": "={{ $json.rows?.[0] ? 200 : 404 }}",
+        "responseBody": "={{ $json.rows?.[0] ? { ok:true, data:$json.rows[0] } : { ok:false, error:'Not found' } }}"
+      }
+    },
+    {
+      "id": "PG-List",
+      "name": "PG List",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 180],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM plants WHERE user_id=$1\n  AND ($2::text IS NULL OR species=$2)\n  AND ($3::text IS NULL OR location=$3)\nORDER BY created_at DESC LIMIT 100;",
+        "additionalFields": {
+          "queryParams": [
+            { "value": "={{$json.userId}}" },
+            { "value": "={{$json.filter_species}}" },
+            { "value": "={{$json.filter_location}}" }
+          ]
+        }
+      },
+      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+    },
+    {
+      "id": "Respond-List",
+      "name": "Respond (list)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 180],
+      "parameters": {
+        "responseCode": 200,
+        "responseBody": "={{ { ok:true, data: $json.rows || [] } }}"
+      }
+    },
+    {
+      "id": "PG-Update",
+      "name": "PG Update",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 240],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE plants SET\n  name = COALESCE($3, name),\n  species = COALESCE($4, species),\n  location = COALESCE($5, location),\n  light = COALESCE($6, light),\n  notes = COALESCE($7, notes),\n  water_interval_days = COALESCE($8::int, water_interval_days),\n  next_water_due_at = CASE WHEN $8::int IS NOT NULL THEN\n      CASE WHEN last_watered_at IS NOT NULL THEN last_watered_at + ($8::text || ' days')::interval\n           ELSE NOW() + ($8::text || ' days')::interval END\n    ELSE next_water_due_at END,\n  photo_url = COALESCE($9, photo_url),\n  updated_at = NOW()\nWHERE id=$1 AND user_id=$2\nRETURNING *;",
+        "additionalFields": {
+          "queryParams": [
+            { "value": "={{$json.id}}" },
+            { "value": "={{$json.userId}}" },
+            { "value": "={{$json.name}}" },
+            { "value": "={{$json.species}}" },
+            { "value": "={{$json.location}}" },
+            { "value": "={{$json.light}}" },
+            { "value": "={{$json.notes}}" },
+            { "value": "={{$json.water_interval_days}}" },
+            { "value": "={{$json.photoUrl}}" }
+          ]
+        }
+      },
+      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+    },
+    {
+      "id": "Respond-Update",
+      "name": "Respond (update)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 240],
+      "parameters": {
+        "responseCode": "={{ $json.rows?.[0] ? 200 : 404 }}",
+        "responseBody": "={{ $json.rows?.[0] ? { ok:true, data: $json.rows[0] } : { ok:false, error:'Not found' } }}"
+      }
+    },
+    {
+      "id": "PG-Delete",
+      "name": "PG Delete",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM plants WHERE id=$1 AND user_id=$2 RETURNING *;",
+        "additionalFields": {
+          "queryParams": [
+            { "value": "={{$json.id}}" },
+            { "value": "={{$json.userId}}" }
+          ]
+        }
+      },
+      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+    },
+    {
+      "id": "Respond-Delete",
+      "name": "Respond (delete)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 300],
+      "parameters": {
+        "responseCode": "={{ $json.rows?.[0] ? 200 : 404 }}",
+        "responseBody": "={{ $json.rows?.[0] ? { ok:true, data:$json.rows[0] } : { ok:false, error:'Not found' } }}"
+      }
+    },
+    {
+      "id": "PG-Water-Log",
+      "name": "PG Water Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 360],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO water_logs (plant_id, user_id, amount_l, note) VALUES ($1,$2,$3,$4);",
+        "additionalFields": {
+          "queryParams": [
+            { "value": "={{$json.id}}" },
+            { "value": "={{$json.userId}}" },
+            { "value": "={{$json.amount_l}}" },
+            { "value": "={{$json.note}}" }
+          ]
+        }
+      },
+      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+    },
+    {
+      "id": "PG-Water-UpdatePlant",
+      "name": "PG Water Update Plant",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1160, 360],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE plants SET last_watered_at = NOW(), next_water_due_at =\n  CASE WHEN water_interval_days IS NOT NULL THEN NOW() + (water_interval_days::text || ' days')::interval ELSE next_water_due_at END,\n  updated_at = NOW()\nWHERE id=$1 AND user_id=$2\nRETURNING *;",
+        "additionalFields": {
+          "queryParams": [
+            { "value": "={{$json.id}}" },
+            { "value": "={{$json.userId}}" }
+          ]
+        }
+      },
+      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+    },
+    {
+      "id": "Respond-Water",
+      "name": "Respond (water)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1420, 360],
+      "parameters": {
+        "responseCode": "={{ $json.rows?.[0] ? 200 : 404 }}",
+        "responseBody": "={{ $json.rows?.[0] ? { ok:true, data:$json.rows[0] } : { ok:false, error:'Not found' } }}"
+      }
+    },
+    {
+      "id": "Fn-Photo-Guard",
+      "name": "Photo Guard",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [900, 420],
+      "parameters": {
+        "functionCode": "const plantId = Number($json.id || $json.plantId);\nconst imageUrl = $json.imageUrl;\nif (!plantId || !imageUrl) {\n  return [{ json: { ok:false, error:'plantId and imageUrl required' } }];\n}\nreturn [{ json: { plantId, imageUrl, userId: $json.userId, now: $json.now } }];"
+      }
+    },
+    {
+      "id": "HTTP-Photo-Download",
+      "name": "Photo Download",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1160, 420],
+      "parameters": {
+        "url": "={{$json[\"imageUrl\"]}}",
+        "responseFormat": "file",
+        "download": true
+      }
+    },
+    {
+      "id": "Fn-Photo-Path",
+      "name": "Fn Photo Path",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [1420, 420],
+      "parameters": {
+        "functionCode": "const plantId = $json.plantId;\nconst now = $json.now || Date.now();\nconst FILE_DIR = `/data/plant_photos/${plantId}`;\nconst FILE_NAME = `${now}.jpg`;\nconst ABS_PATH = `${FILE_DIR}/${FILE_NAME}`;\nconst PUBLIC_BASE_URL = 'http://YOUR-FILESERVER/plant_photos'; // <- change me\nconst PUBLIC_URL = `${PUBLIC_BASE_URL}/${plantId}/${FILE_NAME}`;\nreturn [{ json: { plantId, path: ABS_PATH, publicUrl: PUBLIC_URL } }];"
+      }
+    },
+    {
+      "id": "Write-File",
+      "name": "Write File",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [1680, 420],
+      "parameters": {
+        "fileName": "={{$json[\"path\"]}}",
+        "binaryPropertyName": "data"
+      }
+    },
+    {
+      "id": "Respond-Photo",
+      "name": "Respond (photo.add)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1940, 420],
+      "parameters": {
+        "responseCode": 200,
+        "responseBody": "={{ { ok:true, data: { photoUrl: $json.publicUrl } } }}"
+      }
+    },
+    {
+      "id": "PG-Reminder-Upsert",
+      "name": "PG Reminder Upsert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 480],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO plant_reminders (plant_id, user_id, channel_id, guild_id, enabled, time, water_interval_days, updated_at)\nVALUES ($1,$2,$3,$4, COALESCE($5, TRUE), $6, $7, NOW())\nON CONFLICT (plant_id, user_id)\nDO UPDATE SET\n  channel_id = COALESCE(EXCLUDED.channel_id, plant_reminders.channel_id),\n  guild_id = COALESCE(EXCLUDED.guild_id, plant_reminders.guild_id),\n  enabled = COALESCE(EXCLUDED.enabled, plant_reminders.enabled),\n  time = COALESCE(EXCLUDED.time, plant_reminders.time),\n  water_interval_days = COALESCE(EXCLUDED.water_interval_days, plant_reminders.water_interval_days),\n  updated_at = NOW()\nRETURNING *;",
+        "additionalFields": {
+          "queryParams": [
+            { "value": "={{$json.id}}" },
+            { "value": "={{$json.userId}}" },
+            { "value": "={{$json.reminder_channelId}}" },
+            { "value": "={{$json.reminder_guildId}}" },
+            { "value": "={{$json.enabled}}" },
+            { "value": "={{$json.time}}" },
+            { "value": "={{$json.reminder_waterDays}}" }
+          ]
+        }
+      },
+      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+    },
+    {
+      "id": "Respond-Reminder",
+      "name": "Respond (reminder.set)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 480],
+      "parameters": {
+        "responseCode": 200,
+        "responseBody": "={{ { ok:true, data: $json.rows?.[0] || null } }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: /plant-api": { "main": [[{ "node": "Parse Input", "type": "main", "index": 0 }]] },
+    "Parse Input": {
+      "main": [[
+        { "node": "IF create", "type": "main", "index": 0 },
+        { "node": "IF get", "type": "main", "index": 0 },
+        { "node": "IF list", "type": "main", "index": 0 },
+        { "node": "IF update", "type": "main", "index": 0 },
+        { "node": "IF delete", "type": "main", "index": 0 },
+        { "node": "IF water", "type": "main", "index": 0 },
+        { "node": "IF photo.add", "type": "main", "index": 0 },
+        { "node": "IF reminder.set", "type": "main", "index": 0 }
+      ]]
+    },
+    "IF create": {
+      "main": [
+        [{ "node": "PG Create", "type": "main", "index": 0 }],
+        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
+      ]
+    },
+    "PG Create": { "main": [[{ "node": "Respond (create)", "type": "main", "index": 0 }]] },
+    "IF get": {
+      "main": [
+        [{ "node": "PG Get", "type": "main", "index": 0 }],
+        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
+      ]
+    },
+    "PG Get": { "main": [[{ "node": "Respond (get)", "type": "main", "index": 0 }]] },
+    "IF list": {
+      "main": [
+        [{ "node": "PG List", "type": "main", "index": 0 }],
+        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
+      ]
+    },
+    "PG List": { "main": [[{ "node": "Respond (list)", "type": "main", "index": 0 }]] },
+    "IF update": {
+      "main": [
+        [{ "node": "PG Update", "type": "main", "index": 0 }],
+        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
+      ]
+    },
+    "PG Update": { "main": [[{ "node": "Respond (update)", "type": "main", "index": 0 }]] },
+    "IF delete": {
+      "main": [
+        [{ "node": "PG Delete", "type": "main", "index": 0 }],
+        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
+      ]
+    },
+    "PG Delete": { "main": [[{ "node": "Respond (delete)", "type": "main", "index": 0 }]] },
+    "IF water": {
+      "main": [
+        [{ "node": "PG Water Log", "type": "main", "index": 0 }],
+        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
+      ]
+    },
+    "PG Water Log": { "main": [[{ "node": "PG Water Update Plant", "type": "main", "index": 0 }]] },
+    "PG Water Update Plant": { "main": [[{ "node": "Respond (water)", "type": "main", "index": 0 }]] },
+    "IF photo.add": {
+      "main": [
+        [{ "node": "Photo Guard", "type": "main", "index": 0 }],
+        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Photo Guard": { "main": [[{ "node": "Photo Download", "type": "main", "index": 0 }]] },
+    "Photo Download": { "main": [[{ "node": "Fn Photo Path", "type": "main", "index": 0 }]] },
+    "Fn Photo Path": { "main": [[{ "node": "Write File", "type": "main", "index": 0 }]] },
+    "Write File": { "main": [[{ "node": "Respond (photo.add)", "type": "main", "index": 0 }]] },
+    "IF reminder.set": {
+      "main": [
+        [{ "node": "PG Reminder Upsert", "type": "main", "index": 0 }],
+        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
+      ]
+    },
+    "PG Reminder Upsert": { "main": [[{ "node": "Respond (reminder.set)", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

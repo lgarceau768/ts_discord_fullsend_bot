@@ -7,6 +7,7 @@ import downloads from "./commands/downloads.js";
 import interactionCreate from "./events/interactionCreate.js";
 import ready from "./events/ready.js";
 import request from "./commands/request";
+import plant from './commands/plant.js'
 
 const logger = pino({ level: env.LOG_LEVEL });
 
@@ -18,6 +19,7 @@ commands.set(ping.data.name, ping);
 commands.set(search.data.name, search);
 commands.set(downloads.data.name, downloads);
 commands.set(request.data.name, request);
+commands.set(plant.data.name, plant);
 
 // Wire up event handlers
 ready(client as any);
