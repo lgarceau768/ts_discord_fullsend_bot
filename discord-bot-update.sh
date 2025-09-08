@@ -23,9 +23,9 @@ log() {
 # Pick compose command (supports older docker-compose too)
 compose() {
   if command -v docker &>/dev/null && docker compose version &>/dev/null; then
-    docker compose -f "${REPO_DIR}/docker-compose.yml" "$@"
+    docker compose -f "${REPO_DIR}/docker-compose.yaml" "$@"
   else
-    docker-compose -f "${REPO_DIR}/docker-compose.yml" "$@"
+    docker-compose -f "${REPO_DIR}/docker-compose.yaml" "$@"
   fi
 }
 
