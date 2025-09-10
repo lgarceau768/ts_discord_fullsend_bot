@@ -1,556 +1,1771 @@
 {
-  "name": "Plant API (Discord bot) - Compat",
+  "name": "Plant API",
   "nodes": [
     {
-      "id": "Webhook-PlantAPI",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "plant-api",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f323a218-df82-408c-b949-2bbaa6e1b531",
       "name": "Webhook: /plant-api",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [160, 260],
+      "position": [
+        -1568,
+        32
+      ],
+      "webhookId": "59b27d4a-ee22-4e90-bbfc-f9fd8c71f66b"
+    },
+    {
       "parameters": {
-        "path": "plant-api",
-        "httpMethod": "POST",
-        "responseMode": "responseNode"
+        "options": {}
       },
-      "webhookId": ""
-    },
-    {
-      "id": "Fn-Parse",
-      "name": "Parse Input",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 2,
-      "position": [400, 260],
-      "parameters": {
-        "functionCode": "const body = $json.body ?? $json;\nconst action = String(body.action || '').trim();\nif (!action) {\n  return [{ json: { ok:false, error:'Missing action' } }];\n}\nconst out = {\n  action,\n  userId: body.userId || body.user_id || '',\n  guildId: body.guildId || body.guild_id || undefined,\n  channelId: body.channelId || body.channel_id || undefined,\n  id: body.id != null ? Number(body.id) : undefined,\n  name: body.name,\n  species: body.species,\n  location: body.location,\n  light: body.light,\n  notes: body.notes,\n  photoUrl: body.photoUrl || body.photo_url,\n  water_interval_days: body.waterIntervalDays ?? body.water_interval_days,\n  filter_species: body.species || undefined,\n  filter_location: body.location || undefined,\n  amount_l: body.amountL ?? body.amount_l,\n  note: body.note,\n  imageUrl: body.imageUrl || body.image_url,\n  enabled: (body.enabled === true || body.enabled === false) ? body.enabled : undefined,\n  time: body.time,\n  reminder_channelId: body.channelId || body.channel_id,\n  reminder_guildId: body.guildId || body.guild_id,\n  reminder_waterDays: body.waterIntervalDays ?? body.water_interval_days,\n  now: Date.now()\n};\nreturn [{ json: out }];"
-      }
-    },
-    {
-      "id": "IF-Create",
-      "name": "IF create",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [640, 60],
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json[\"action\"]}}",
-              "operation": "equal",
-              "value2": "create"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "IF-Get",
-      "name": "IF get",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [640, 120],
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json[\"action\"]}}",
-              "operation": "equal",
-              "value2": "get"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "IF-List",
-      "name": "IF list",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [640, 180],
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json[\"action\"]}}",
-              "operation": "equal",
-              "value2": "list"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "IF-Update",
-      "name": "IF update",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [640, 240],
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json[\"action\"]}}",
-              "operation": "equal",
-              "value2": "update"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "IF-Delete",
-      "name": "IF delete",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [640, 300],
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json[\"action\"]}}",
-              "operation": "equal",
-              "value2": "delete"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "IF-Water",
-      "name": "IF water",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [640, 360],
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json[\"action\"]}}",
-              "operation": "equal",
-              "value2": "water"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "IF-PhotoAdd",
-      "name": "IF photo.add",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [640, 420],
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json[\"action\"]}}",
-              "operation": "equal",
-              "value2": "photo.add"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "IF-ReminderSet",
-      "name": "IF reminder.set",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [640, 480],
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json[\"action\"]}}",
-              "operation": "equal",
-              "value2": "reminder.set"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "Respond-Unknown",
+      "id": "1ce40d71-f6d0-4b5d-bc84-626c8ab3c861",
       "name": "Respond (unknown)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [900, 560],
-      "parameters": {
-        "responseCode": 400,
-        "responseBody": "={{ { ok:false, error: `Unknown action: ${$json.action}` } }}"
-      }
+      "position": [
+        368,
+        1456
+      ]
     },
     {
-      "id": "PG-Create",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO plants (\n  user_id, name, species, location, light, notes, image_url, water_interval_days, last_watered_at, next_water_due_at, updated_at\n) VALUES (\n  {{ $json.userId }}, '{{ $json.name }}', '{{ $json.species }}', '{{ $json.location }}', '{{ $json.light }}', '{{ $json.notes }}', '{{ $json.photo || '' }}', {{ $json.water_interval_days }},\n  NOW(),\n  CASE WHEN {{ $json.reminder_waterDays }}::int IS NOT NULL THEN NOW() + ({{ $json.reminder_waterDays }}::text || ' days')::interval ELSE NULL END,\n  NOW()\n) RETURNING id, *;",
+        "options": {}
+      },
+      "id": "cae6db4f-93c9-40fe-b308-562728c6591e",
       "name": "PG Create",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [900, 60],
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO plants (\n  user_id, name, species, location, light, notes, photo_url, water_interval_days, last_watered_at, next_water_due_at, updated_at\n) VALUES (\n  $1, $2, $3, $4, $5, $6, $7, $8,\n  NOW(),\n  CASE WHEN $8::int IS NOT NULL THEN NOW() + ($8::text || ' days')::interval ELSE NULL END,\n  NOW()\n) RETURNING *;",
-        "additionalFields": {
-          "queryParams": [
-            { "value": "={{$json.userId}}" },
-            { "value": "={{$json.name}}" },
-            { "value": "={{$json.species}}" },
-            { "value": "={{$json.location}}" },
-            { "value": "={{$json.light}}" },
-            { "value": "={{$json.notes}}" },
-            { "value": "={{$json.photoUrl}}" },
-            { "value": "={{$json.water_interval_days}}" }
-          ]
+      "position": [
+        144,
+        -640
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
         }
-      },
-      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+      }
     },
     {
-      "id": "Respond-Create",
+      "parameters": {
+        "options": {}
+      },
+      "id": "9c776b49-43d9-47ba-b27e-4e9e5dd7d269",
       "name": "Respond (create)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1160, 60],
-      "parameters": {
-        "responseCode": 200,
-        "responseBody": "={{ { ok:true, data: $json.rows?.[0] || null } }}"
-      }
+      "position": [
+        688,
+        -640
+      ]
     },
     {
-      "id": "PG-Get",
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "plants",
+          "mode": "list",
+          "cachedResultName": "plants"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "df4ee1a8-577d-46da-b3ec-0cfd355d858f",
       "name": "PG Get",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [900, 120],
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT * FROM plants WHERE id=$1 AND user_id=$2;",
-        "additionalFields": {
-          "queryParams": [
-            { "value": "={{$json.id}}" },
-            { "value": "={{$json.userId}}" }
-          ]
+      "position": [
+        160,
+        -288
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
         }
-      },
-      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+      }
     },
     {
-      "id": "Respond-Get",
+      "parameters": {
+        "options": {}
+      },
+      "id": "a81ece19-23fe-4d03-b1d7-ae19e22c2a40",
       "name": "Respond (get)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1160, 120],
-      "parameters": {
-        "responseCode": "={{ $json.rows?.[0] ? 200 : 404 }}",
-        "responseBody": "={{ $json.rows?.[0] ? { ok:true, data:$json.rows[0] } : { ok:false, error:'Not found' } }}"
-      }
+      "position": [
+        1088,
+        -272
+      ]
     },
     {
-      "id": "PG-List",
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "plants",
+          "mode": "list",
+          "cachedResultName": "plants"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "user_id",
+              "value": "={{ $json.userId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6d4de0be-da91-41bb-8775-3116dc0c0456",
       "name": "PG List",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [900, 180],
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT * FROM plants WHERE user_id=$1\n  AND ($2::text IS NULL OR species=$2)\n  AND ($3::text IS NULL OR location=$3)\nORDER BY created_at DESC LIMIT 100;",
-        "additionalFields": {
-          "queryParams": [
-            { "value": "={{$json.userId}}" },
-            { "value": "={{$json.filter_species}}" },
-            { "value": "={{$json.filter_location}}" }
-          ]
+      "position": [
+        384,
+        -112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
         }
-      },
-      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+      }
     },
     {
-      "id": "Respond-List",
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "0b64fa91-a9ff-439c-8db8-5b8f5ab93e65",
       "name": "Respond (list)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1160, 180],
-      "parameters": {
-        "responseCode": 200,
-        "responseBody": "={{ { ok:true, data: $json.rows || [] } }}"
-      }
+      "position": [
+        704,
+        -128
+      ]
     },
     {
-      "id": "PG-Update",
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "plants",
+          "mode": "list",
+          "cachedResultName": "plants"
+        },
+        "dataMode": "defineBelow",
+        "columnToMatchOn": "id",
+        "valueToMatchOn": "={{ $json.id }}",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "name",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "column": "species",
+              "value": "={{ $json.species }}"
+            },
+            {
+              "column": "location",
+              "value": "={{ $json.location }}"
+            },
+            {
+              "column": "light",
+              "value": "={{ $json.light }}"
+            },
+            {
+              "column": "notes",
+              "value": "={{ $json.notes }}"
+            },
+            {
+              "column": "image_url",
+              "value": "={{ $json.imageUrl || $json.image_url }}"
+            },
+            {
+              "column": "water_interval_days",
+              "value": "={{ $json.water_interval_days }}"
+            },
+            {
+              "column": "state",
+              "value": "={{ $json.state }}"
+            },
+            {
+              "column": "plant_path",
+              "value": "={{ $json.plant_path }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5f54a9dd-7e51-4cc1-9a53-285b19943584",
       "name": "PG Update",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [900, 240],
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE plants SET\n  name = COALESCE($3, name),\n  species = COALESCE($4, species),\n  location = COALESCE($5, location),\n  light = COALESCE($6, light),\n  notes = COALESCE($7, notes),\n  water_interval_days = COALESCE($8::int, water_interval_days),\n  next_water_due_at = CASE WHEN $8::int IS NOT NULL THEN\n      CASE WHEN last_watered_at IS NOT NULL THEN last_watered_at + ($8::text || ' days')::interval\n           ELSE NOW() + ($8::text || ' days')::interval END\n    ELSE next_water_due_at END,\n  photo_url = COALESCE($9, photo_url),\n  updated_at = NOW()\nWHERE id=$1 AND user_id=$2\nRETURNING *;",
-        "additionalFields": {
-          "queryParams": [
-            { "value": "={{$json.id}}" },
-            { "value": "={{$json.userId}}" },
-            { "value": "={{$json.name}}" },
-            { "value": "={{$json.species}}" },
-            { "value": "={{$json.location}}" },
-            { "value": "={{$json.light}}" },
-            { "value": "={{$json.notes}}" },
-            { "value": "={{$json.water_interval_days}}" },
-            { "value": "={{$json.photoUrl}}" }
-          ]
+      "position": [
+        624,
+        64
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
         }
-      },
-      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+      }
     },
     {
-      "id": "Respond-Update",
+      "parameters": {
+        "options": {}
+      },
+      "id": "f04a7eaf-df45-4ce0-a790-2d8ce7a7058b",
       "name": "Respond (update)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1160, 240],
-      "parameters": {
-        "responseCode": "={{ $json.rows?.[0] ? 200 : 404 }}",
-        "responseBody": "={{ $json.rows?.[0] ? { ok:true, data: $json.rows[0] } : { ok:false, error:'Not found' } }}"
-      }
+      "position": [
+        912,
+        32
+      ]
     },
     {
-      "id": "PG-Delete",
-      "name": "PG Delete",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
-      "position": [900, 300],
       "parameters": {
         "operation": "executeQuery",
         "query": "DELETE FROM plants WHERE id=$1 AND user_id=$2 RETURNING *;",
-        "additionalFields": {
-          "queryParams": [
-            { "value": "={{$json.id}}" },
-            { "value": "={{$json.userId}}" }
-          ]
+        "options": {
+          "queryReplacement": "={{ $json.id }},{{ $json.userId }}"
         }
       },
-      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+      "id": "b8d7f133-0594-4300-8625-9a46e051fa05",
+      "name": "PG Delete",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        608,
+        464
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
+        }
+      }
     },
     {
-      "id": "Respond-Delete",
+      "parameters": {
+        "options": {}
+      },
+      "id": "851ff91d-dfac-47b0-a5d8-6593c85d4703",
       "name": "Respond (delete)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1160, 300],
-      "parameters": {
-        "responseCode": "={{ $json.rows?.[0] ? 200 : 404 }}",
-        "responseBody": "={{ $json.rows?.[0] ? { ok:true, data:$json.rows[0] } : { ok:false, error:'Not found' } }}"
-      }
+      "position": [
+        832,
+        480
+      ]
     },
     {
-      "id": "PG-Water-Log",
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "water_logs",
+          "mode": "list",
+          "cachedResultName": "water_logs"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "plant_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "column": "user_id",
+              "value": "={{ $json.userId }}"
+            },
+            {
+              "column": "amount_l",
+              "value": "={{ $json.amount_l }}"
+            },
+            {
+              "column": "note",
+              "value": "={{ $json.note }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fc4b012c-de21-4b26-8be5-cb485880222f",
       "name": "PG Water Log",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [900, 360],
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO water_logs (plant_id, user_id, amount_l, note) VALUES ($1,$2,$3,$4);",
-        "additionalFields": {
-          "queryParams": [
-            { "value": "={{$json.id}}" },
-            { "value": "={{$json.userId}}" },
-            { "value": "={{$json.amount_l}}" },
-            { "value": "={{$json.note}}" }
-          ]
+      "position": [
+        288,
+        704
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
         }
-      },
-      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+      }
     },
     {
-      "id": "PG-Water-UpdatePlant",
-      "name": "PG Water Update Plant",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
-      "position": [1160, 360],
       "parameters": {
         "operation": "executeQuery",
         "query": "UPDATE plants SET last_watered_at = NOW(), next_water_due_at =\n  CASE WHEN water_interval_days IS NOT NULL THEN NOW() + (water_interval_days::text || ' days')::interval ELSE next_water_due_at END,\n  updated_at = NOW()\nWHERE id=$1 AND user_id=$2\nRETURNING *;",
-        "additionalFields": {
-          "queryParams": [
-            { "value": "={{$json.id}}" },
-            { "value": "={{$json.userId}}" }
-          ]
+        "options": {
+          "queryReplacement": "={{ $json.plant_id }},{{ $json.user_id }}"
         }
       },
-      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
+      "id": "bcda7ebc-e5fb-4fe5-9830-048ea32fa78b",
+      "name": "PG Water Update Plant",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        544,
+        704
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
+        }
+      }
     },
     {
-      "id": "Respond-Water",
+      "parameters": {
+        "options": {}
+      },
+      "id": "d76842db-b1e3-464d-bd93-0243046d6461",
       "name": "Respond (water)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1420, 360],
-      "parameters": {
-        "responseCode": "={{ $json.rows?.[0] ? 200 : 404 }}",
-        "responseBody": "={{ $json.rows?.[0] ? { ok:true, data:$json.rows[0] } : { ok:false, error:'Not found' } }}"
-      }
+      "position": [
+        784,
+        704
+      ]
     },
     {
-      "id": "Fn-Photo-Guard",
-      "name": "Photo Guard",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 2,
-      "position": [900, 420],
       "parameters": {
-        "functionCode": "const plantId = Number($json.id || $json.plantId);\nconst imageUrl = $json.imageUrl;\nif (!plantId || !imageUrl) {\n  return [{ json: { ok:false, error:'plantId and imageUrl required' } }];\n}\nreturn [{ json: { plantId, imageUrl, userId: $json.userId, now: $json.now } }];"
-      }
-    },
-    {
-      "id": "HTTP-Photo-Download",
+        "url": "={{$json[\"imageUrl\"]}}",
+        "options": {}
+      },
+      "id": "0b45b28a-84e6-47f4-b6e1-be7b58696ca6",
       "name": "Photo Download",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1160, 420],
-      "parameters": {
-        "url": "={{$json[\"imageUrl\"]}}",
-        "responseFormat": "file",
-        "download": true
-      }
+      "position": [
+        640,
+        944
+      ]
     },
     {
-      "id": "Fn-Photo-Path",
-      "name": "Fn Photo Path",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 2,
-      "position": [1420, 420],
       "parameters": {
-        "functionCode": "const plantId = $json.plantId;\nconst now = $json.now || Date.now();\nconst FILE_DIR = `/data/plant_photos/${plantId}`;\nconst FILE_NAME = `${now}.jpg`;\nconst ABS_PATH = `${FILE_DIR}/${FILE_NAME}`;\nconst PUBLIC_BASE_URL = 'http://YOUR-FILESERVER/plant_photos'; // <- change me\nconst PUBLIC_URL = `${PUBLIC_BASE_URL}/${plantId}/${FILE_NAME}`;\nreturn [{ json: { plantId, path: ABS_PATH, publicUrl: PUBLIC_URL } }];"
-      }
-    },
-    {
-      "id": "Write-File",
+        "fileName": "=/tmp/{{$json[\"path\"]}}",
+        "options": {}
+      },
+      "id": "41cab76a-bffd-4fb1-a432-ee9381b6ca4f",
       "name": "Write File",
       "type": "n8n-nodes-base.writeBinaryFile",
       "typeVersion": 1,
-      "position": [1680, 420],
-      "parameters": {
-        "fileName": "={{$json[\"path\"]}}",
-        "binaryPropertyName": "data"
-      }
+      "position": [
+        864,
+        944
+      ]
     },
     {
-      "id": "Respond-Photo",
+      "parameters": {
+        "options": {}
+      },
+      "id": "d19e87de-b895-45fd-b37d-b18d592149cc",
       "name": "Respond (photo.add)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1940, 420],
-      "parameters": {
-        "responseCode": 200,
-        "responseBody": "={{ { ok:true, data: { photoUrl: $json.publicUrl } } }}"
-      }
+      "position": [
+        1072,
+        944
+      ]
     },
     {
-      "id": "PG-Reminder-Upsert",
-      "name": "PG Reminder Upsert",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
-      "position": [900, 480],
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO plant_reminders (plant_id, user_id, channel_id, guild_id, enabled, time, water_interval_days, updated_at)\nVALUES ($1,$2,$3,$4, COALESCE($5, TRUE), $6, $7, NOW())\nON CONFLICT (plant_id, user_id)\nDO UPDATE SET\n  channel_id = COALESCE(EXCLUDED.channel_id, plant_reminders.channel_id),\n  guild_id = COALESCE(EXCLUDED.guild_id, plant_reminders.guild_id),\n  enabled = COALESCE(EXCLUDED.enabled, plant_reminders.enabled),\n  time = COALESCE(EXCLUDED.time, plant_reminders.time),\n  water_interval_days = COALESCE(EXCLUDED.water_interval_days, plant_reminders.water_interval_days),\n  updated_at = NOW()\nRETURNING *;",
-        "additionalFields": {
-          "queryParams": [
-            { "value": "={{$json.id}}" },
-            { "value": "={{$json.userId}}" },
-            { "value": "={{$json.reminder_channelId}}" },
-            { "value": "={{$json.reminder_guildId}}" },
-            { "value": "={{$json.enabled}}" },
-            { "value": "={{$json.time}}" },
-            { "value": "={{$json.reminder_waterDays}}" }
-          ]
-        }
+        "options": {}
       },
-      "credentials": { "postgres": { "id": "", "name": "Postgres Plants" } }
-    },
-    {
-      "id": "Respond-Reminder",
+      "id": "6ce73641-4cbc-4bb7-b04c-9779b136fa79",
       "name": "Respond (reminder.set)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1160, 480],
+      "position": [
+        1664,
+        1088
+      ]
+    },
+    {
       "parameters": {
-        "responseCode": 200,
-        "responseBody": "={{ { ok:true, data: $json.rows?.[0] || null } }}"
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $input.item.json.body;\nconst action = String(body.action || '').trim();\nif (!action) {\n  return [{ json: { ok:false, error:'Missing action' } }];\n}\nconst out = {\n  action,\n  userId: body.userId || body.user_id || '',\n  guildId: body.guildId || body.guild_id || undefined,\n  channelId: body.channelId || body.channel_id || undefined,\n  id: body.id != null ? Number(body.id) : body.plantId != null ? Number(body.plantId) : undefined,\n  name: body.name,\n  species: body.species,\n  location: body.location,\n  light: body.light,\n  notes: body.notes,\n  water_interval_days: body.waterIntervalDays ?? body.water_interval_days,\n  filter_species: body.species || undefined,\n  filter_location: body.location || undefined,\n  amount_l: body.amountL ?? body.amount_l,\n  note: body.note,\n  imageUrl: body.imageUrl || body.image_url || body.photoUrl || body.photo_url,\n  enabled: (body.enabled === true || body.enabled === false) ? body.enabled : undefined,\n  caption: body.caption || undefined,\n  time: body.time,\n  reminder_channelId: body.channelId || body.channel_id,\n  reminder_guildId: body.guildId || body.guild_id,\n  reminder_waterDays: body.waterIntervalDays ?? body.water_interval_days,\n  now: Date.now()\n};\nreturn { json: out };\n  "
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1216,
+        32
+      ],
+      "id": "6ad98fff-3614-457d-bd42-8a889bd321a5",
+      "name": "Normalize Body"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "water",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7a697143-2053-4820-a521-c186a4b9359f"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Water"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9ded6e42-6d95-4ac4-add8-2062dd3cec3d",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "create",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Create"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b9533607-66b4-4abc-aec0-b30a451587a9",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "get",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Get"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bfe7027f-030b-4360-a914-1e733609c0ff",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "list",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "List"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e5dabd83-1fe2-4c05-9ef1-044960d7d076",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "update",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Update"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "673457b1-55bb-4e54-bd87-a35d360f72df",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "delete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Delete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "82cde334-37f9-4ea5-8c07-b5e1922e09d5",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "photo.add",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Photo.Add"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e75a1a45-e0e2-473a-89bc-c45f77ad9840",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "reminder.set",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reminder"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1008,
+        -64
+      ],
+      "id": "77fdeb6f-6c38-42f1-917d-f193d4a34de6",
+      "name": "Take Action"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "plant_reminders",
+          "mode": "list",
+          "cachedResultName": "plant_reminders"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "plant_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "column": "user_id",
+              "value": "={{ $json.userId }}"
+            },
+            {
+              "column": "guild_id",
+              "value": "={{ $json.guildId }}"
+            },
+            {
+              "column": "channel_id",
+              "value": "={{ $json.channelId }}"
+            },
+            {
+              "column": "enabled",
+              "value": "={{ $json.enabled }}"
+            },
+            {
+              "column": "time",
+              "value": "={{ $json.time }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a2305295-1e0e-4dce-8863-c46707603662",
+      "name": "PG Reminder Set",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        368,
+        1136
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
+        }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  let urlItems = item.json.imageUrl.split('?');\n  console.log(urlItems)\n  let fileName = urlItems[0].split('/')\n  console.log(fileName)\n                              \n\n  item.json.path = item.json.id + \"_id_\" + fileName[fileName.length - 1] \n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        944
+      ],
+      "id": "e440834b-a641-45d6-b584-84c855d43461",
+      "name": "Create path"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "plants",
+          "mode": "list",
+          "cachedResultName": "plants"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "feef8175-ebc8-42fb-8b90-962d9707b182",
+      "name": "PG Get1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        464,
+        304
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "abf64512-0864-4d83-b5b5-d5bb3851449e",
+              "name": "plant_path",
+              "value": "={{ $json.plant_path }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        304
+      ],
+      "id": "fcded2c8-9be1-4d9e-bf95-f3ee7e89dc62",
+      "name": "Set Photo Path"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9172f726-0547-4f2b-b9bc-21182b28f811",
+              "leftValue": "={{ $json.imageUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        80
+      ],
+      "id": "cf721512-f44f-4fa5-ba61-3547d1a420d0",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        0,
+        160
+      ],
+      "id": "08f52009-46e5-4fa6-8839-31d140a15cc5",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=/tmp/{{ $json.plant_path }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        400,
+        -368
+      ],
+      "id": "73e33421-54d6-4f0b-bd7a-a59592145d19",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        -272
+      ],
+      "id": "9e113f77-6f27-4760-b72f-bd73fb7fc9db",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "69293287-0cbe-42c8-81cb-75c4344ef0dc",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "number"
+            },
+            {
+              "id": "df0cb98c-b85b-420f-b0ba-94452297cefb",
+              "name": "user_id",
+              "value": "={{ $json.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "25657495-1596-4c84-a6a5-5719d272f729",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "3f542b2e-f3c4-4564-b876-8602c52206b0",
+              "name": "species",
+              "value": "={{ $json.species }}",
+              "type": "string"
+            },
+            {
+              "id": "733a623f-559d-461d-bf50-c69178dbaf62",
+              "name": "location",
+              "value": "={{ $json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "84b011a7-1a21-4c2e-b944-6c41c3700534",
+              "name": "light",
+              "value": "={{ $json.light }}",
+              "type": "string"
+            },
+            {
+              "id": "c82e4a98-96ec-454d-beed-c6873ca012fe",
+              "name": "notes",
+              "value": "={{ $json.notes }}",
+              "type": "string"
+            },
+            {
+              "id": "fdd383e0-9951-42dc-89ac-8b60819df98e",
+              "name": "image_url",
+              "value": "={{ $json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "fbd20eb2-69ee-46cb-bf7c-b1ca5fc23f9e",
+              "name": "water_interval_days",
+              "value": "={{ $json.water_interval_days }}",
+              "type": "number"
+            },
+            {
+              "id": "688a8c90-22cb-4bca-ab64-8bb0712ce457",
+              "name": "last_watered_at",
+              "value": "={{ $json.last_watered_at }}",
+              "type": "string"
+            },
+            {
+              "id": "637c1a7c-8734-4a44-a9bf-56ef65e35d2b",
+              "name": "next_water_due_at",
+              "value": "={{ $json.next_water_due_at }}",
+              "type": "string"
+            },
+            {
+              "id": "eb9dded0-0adf-4c65-b8ac-f90639682bfd",
+              "name": "state",
+              "value": "={{ $json.state }}",
+              "type": "string"
+            },
+            {
+              "id": "921869ac-3689-4118-b0a5-411741000985",
+              "name": "created_at",
+              "value": "={{ $json.created_at }}",
+              "type": "string"
+            },
+            {
+              "id": "654bd156-572f-4686-a9df-6d785ba28796",
+              "name": "updated_at",
+              "value": "={{ $json.updated_at }}",
+              "type": "string"
+            },
+            {
+              "id": "7a1674a6-0af2-453b-a344-a019d3c4c8ba",
+              "name": "plant_path",
+              "value": "={{ $json.plant_path }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        -272
+      ],
+      "id": "307e69d0-3fc2-43bb-832e-f428579b4536",
+      "name": "Make Response"
+    },
+    {
+      "parameters": {
+        "command": "=rm /tmp/{{ $json.plant_path }}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        800,
+        304
+      ],
+      "id": "5e9f9af1-4bf6-42b1-ae16-c8c20440dede",
+      "name": "Delete photo"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "preferInput1",
+              "overrideEmpty": true
+            }
+          },
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        368,
+        80
+      ],
+      "id": "3a220c77-fbeb-44aa-a061-e43f79bffc86",
+      "name": "Select Date For Update"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "plants",
+          "mode": "list",
+          "cachedResultName": "plants"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4dc2e8bd-f6a6-4a2b-ad03-792a576ab32e",
+      "name": "PG Get2",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        192,
+        192
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        464
+      ],
+      "id": "ddf2b17f-10de-4853-a87b-c4e6b8f05926",
+      "name": "Wait",
+      "webhookId": "e76519a1-308f-4fa3-8d2a-486bb809f9e2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  let urlItems = item.json.imageUrl.split('?');\n  let fileName = urlItems[0].split('/')\n                              \n\n  item.json.plant_path = item.json.id + \"_id_\" + fileName[fileName.length - 1] \n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "8cce8206-c7f7-48b0-8fb9-32e9163be783",
+      "name": "Set Image Path For Image Update"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "plants",
+          "mode": "list",
+          "cachedResultName": "plants"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $json.plant_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2b80975c-d108-4910-9917-7b68cd9cec1f",
+      "name": "PG Get3",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        608,
+        1296
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YxZZGcaWQDPU39YP",
+          "name": "Tower DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fileSelector": "=/tmp/{{ $json.plant_path }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        848,
+        1216
+      ],
+      "id": "bdf00d43-e1d8-49f7-abc8-484b774610e1",
+      "name": "Read/Write Files from Disk1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1072,
+        1280
+      ],
+      "id": "84200a35-54f9-41a2-8d13-78493178ecf0",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "69293287-0cbe-42c8-81cb-75c4344ef0dc",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "number"
+            },
+            {
+              "id": "df0cb98c-b85b-420f-b0ba-94452297cefb",
+              "name": "user_id",
+              "value": "={{ $json.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "25657495-1596-4c84-a6a5-5719d272f729",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "3f542b2e-f3c4-4564-b876-8602c52206b0",
+              "name": "species",
+              "value": "={{ $json.species }}",
+              "type": "string"
+            },
+            {
+              "id": "733a623f-559d-461d-bf50-c69178dbaf62",
+              "name": "location",
+              "value": "={{ $json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "84b011a7-1a21-4c2e-b944-6c41c3700534",
+              "name": "light",
+              "value": "={{ $json.light }}",
+              "type": "string"
+            },
+            {
+              "id": "c82e4a98-96ec-454d-beed-c6873ca012fe",
+              "name": "notes",
+              "value": "={{ $json.notes }}",
+              "type": "string"
+            },
+            {
+              "id": "fdd383e0-9951-42dc-89ac-8b60819df98e",
+              "name": "image_url",
+              "value": "={{ $json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "fbd20eb2-69ee-46cb-bf7c-b1ca5fc23f9e",
+              "name": "water_interval_days",
+              "value": "={{ $json.water_interval_days }}",
+              "type": "number"
+            },
+            {
+              "id": "688a8c90-22cb-4bca-ab64-8bb0712ce457",
+              "name": "last_watered_at",
+              "value": "={{ $json.last_watered_at }}",
+              "type": "string"
+            },
+            {
+              "id": "637c1a7c-8734-4a44-a9bf-56ef65e35d2b",
+              "name": "next_water_due_at",
+              "value": "={{ $json.next_water_due_at }}",
+              "type": "string"
+            },
+            {
+              "id": "eb9dded0-0adf-4c65-b8ac-f90639682bfd",
+              "name": "state",
+              "value": "={{ $json.state }}",
+              "type": "string"
+            },
+            {
+              "id": "921869ac-3689-4118-b0a5-411741000985",
+              "name": "created_at",
+              "value": "={{ $json.created_at }}",
+              "type": "string"
+            },
+            {
+              "id": "654bd156-572f-4686-a9df-6d785ba28796",
+              "name": "updated_at",
+              "value": "={{ $json.updated_at }}",
+              "type": "string"
+            },
+            {
+              "id": "7a1674a6-0af2-453b-a344-a019d3c4c8ba",
+              "name": "plant_path",
+              "value": "={{ $json.plant_path }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1280,
+        1312
+      ],
+      "id": "1a2813b6-a718-4736-99c6-3741ced7da4b",
+      "name": "Make Response1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1280,
+        1120
+      ],
+      "id": "e20fbf7e-0239-4ffe-b886-82ffc9f7bd5b",
+      "name": "Merge3"
     }
   ],
-  "connections": {
-    "Webhook: /plant-api": { "main": [[{ "node": "Parse Input", "type": "main", "index": 0 }]] },
-    "Parse Input": {
-      "main": [[
-        { "node": "IF create", "type": "main", "index": 0 },
-        { "node": "IF get", "type": "main", "index": 0 },
-        { "node": "IF list", "type": "main", "index": 0 },
-        { "node": "IF update", "type": "main", "index": 0 },
-        { "node": "IF delete", "type": "main", "index": 0 },
-        { "node": "IF water", "type": "main", "index": 0 },
-        { "node": "IF photo.add", "type": "main", "index": 0 },
-        { "node": "IF reminder.set", "type": "main", "index": 0 }
-      ]]
-    },
-    "IF create": {
-      "main": [
-        [{ "node": "PG Create", "type": "main", "index": 0 }],
-        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
-      ]
-    },
-    "PG Create": { "main": [[{ "node": "Respond (create)", "type": "main", "index": 0 }]] },
-    "IF get": {
-      "main": [
-        [{ "node": "PG Get", "type": "main", "index": 0 }],
-        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
-      ]
-    },
-    "PG Get": { "main": [[{ "node": "Respond (get)", "type": "main", "index": 0 }]] },
-    "IF list": {
-      "main": [
-        [{ "node": "PG List", "type": "main", "index": 0 }],
-        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
-      ]
-    },
-    "PG List": { "main": [[{ "node": "Respond (list)", "type": "main", "index": 0 }]] },
-    "IF update": {
-      "main": [
-        [{ "node": "PG Update", "type": "main", "index": 0 }],
-        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
-      ]
-    },
-    "PG Update": { "main": [[{ "node": "Respond (update)", "type": "main", "index": 0 }]] },
-    "IF delete": {
-      "main": [
-        [{ "node": "PG Delete", "type": "main", "index": 0 }],
-        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
-      ]
-    },
-    "PG Delete": { "main": [[{ "node": "Respond (delete)", "type": "main", "index": 0 }]] },
-    "IF water": {
-      "main": [
-        [{ "node": "PG Water Log", "type": "main", "index": 0 }],
-        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
-      ]
-    },
-    "PG Water Log": { "main": [[{ "node": "PG Water Update Plant", "type": "main", "index": 0 }]] },
-    "PG Water Update Plant": { "main": [[{ "node": "Respond (water)", "type": "main", "index": 0 }]] },
-    "IF photo.add": {
-      "main": [
-        [{ "node": "Photo Guard", "type": "main", "index": 0 }],
-        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
-      ]
-    },
-    "Photo Guard": { "main": [[{ "node": "Photo Download", "type": "main", "index": 0 }]] },
-    "Photo Download": { "main": [[{ "node": "Fn Photo Path", "type": "main", "index": 0 }]] },
-    "Fn Photo Path": { "main": [[{ "node": "Write File", "type": "main", "index": 0 }]] },
-    "Write File": { "main": [[{ "node": "Respond (photo.add)", "type": "main", "index": 0 }]] },
-    "IF reminder.set": {
-      "main": [
-        [{ "node": "PG Reminder Upsert", "type": "main", "index": 0 }],
-        [{ "node": "Respond (unknown)", "type": "main", "index": 0 }]
-      ]
-    },
-    "PG Reminder Upsert": { "main": [[{ "node": "Respond (reminder.set)", "type": "main", "index": 0 }]] }
+  "pinData": {
+    "Webhook: /plant-api": [
+      {
+        "json": {
+          "headers": {
+            "host": "192.168.0.234:5678",
+            "connection": "keep-alive",
+            "content-type": "application/json",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZWY4NWY1NS0xZTBjLTRiOTItYmVjYy0xNzk2NmFlNGEyNTMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU2NzYxOTU0LCJleHAiOjE3NjQ0Nzg4MDB9.tMwPRSO-i0ilLB7cMXIu9TTyZ0PdkXTX6FsAAY8zyec",
+            "accept": "*/*",
+            "accept-language": "*",
+            "sec-fetch-mode": "cors",
+            "user-agent": "node",
+            "accept-encoding": "gzip, deflate",
+            "content-length": "95"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "action": "water",
+            "id": 27,
+            "userId": "248907433945071628",
+            "amountL": 1,
+            "note": "bout half pitcher"
+          },
+          "webhookUrl": "http://localhost:5678/webhook/plant-api",
+          "executionMode": "production"
+        }
+      }
+    ]
   },
-  "active": false,
-  "settings": { "executionOrder": "v1" }
+  "connections": {
+    "PG Create": {
+      "main": [
+        [
+          {
+            "node": "Respond (create)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Get": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "PG List": {
+      "main": [
+        [
+          {
+            "node": "Respond (list)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Update": {
+      "main": [
+        [
+          {
+            "node": "Respond (update)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Delete": {
+      "main": [
+        [
+          {
+            "node": "Respond (delete)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Water Log": {
+      "main": [
+        [
+          {
+            "node": "PG Water Update Plant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Water Update Plant": {
+      "main": [
+        [
+          {
+            "node": "Respond (water)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write File": {
+      "main": [
+        [
+          {
+            "node": "Respond (photo.add)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: /plant-api": {
+      "main": [
+        [
+          {
+            "node": "Normalize Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Body": {
+      "main": [
+        [
+          {
+            "node": "Take Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Take Action": {
+      "main": [
+        [
+          {
+            "node": "PG Water Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PG Create",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PG Get",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PG List",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PG Get1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create path",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PG Reminder Set",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond (unknown)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Reminder Set": {
+      "main": [
+        [
+          {
+            "node": "PG Get3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Photo Download": {
+      "main": [
+        [
+          {
+            "node": "Write File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create path": {
+      "main": [
+        [
+          {
+            "node": "Photo Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Get1": {
+      "main": [
+        [
+          {
+            "node": "Set Photo Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Photo Path": {
+      "main": [
+        [
+          {
+            "node": "Delete photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Set Image Path For Image Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Select Date For Update",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "PG Get2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Make Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make Response": {
+      "main": [
+        [
+          {
+            "node": "Respond (get)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete photo": {
+      "main": [
+        []
+      ]
+    },
+    "Select Date For Update": {
+      "main": [
+        [
+          {
+            "node": "PG Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Get2": {
+      "main": [
+        [
+          {
+            "node": "Select Date For Update",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "PG Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Image Path For Image Update": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "PG Get1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Photo Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Get3": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk1": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Make Response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make Response1": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Respond (reminder.set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2ec7f51e-3604-4d77-8eaf-26269e507628",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cd0d7f146754457eb7741969d4a6dc0e6e273a405f2c74c1127814f80a852a1e"
+  },
+  "id": "xDndhwBsX87PV8Rt",
+  "tags": []
 }

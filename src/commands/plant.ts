@@ -21,12 +21,15 @@ export type PlantRecord = {
   light?: LightLevel;
   notes?: string;
   photoUrl?: string;
-  waterIntervalDays?: number;
-  lastWateredAt?: string;   // ISO
-  nextWaterDueAt?: string;  // ISO (server-computed)
+  image_url?: string;
+
+  water_interval_days?: number;
+
+  last_watered_at?: string;   // ISO
+  next_water_due_at?: string;  // ISO (server-computed)
   state?: PlantState;
-  createdAt?: string;
-  updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 type ApiOk<T = any> = { ok: true; data: T };
@@ -58,13 +61,22 @@ async function plantApi<T = any>(action: string, payload: Record<string, any>): 
   return { ok: true, data: json?.data ?? json } as ApiOk<T>;
 }
 
-function fmtDate(iso?: string) {
-  if (!iso) return "—";
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString();
-  } catch { return iso; }
+function toDate(inStr: string | undefined): string {
+  if (!inStr) return '';
+  let iso = inStr.replaceAll('"', '').trim();
+  const [datePart, timePartRaw] = iso.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+
+  // strip trailing Z
+  const timePart = timePartRaw.replace("Z", "");
+  const [time, millis] = timePart.split(".");
+  const [hour, minute, second] = time.split(":").map(Number);
+
+  return new Date(
+      Date.UTC(year, month - 1, day, hour, minute, second, millis ? Number(millis) : 0)
+  ).toLocaleDateString();
 }
+
 
 function truncate(t?: string, n = 300) {
   if (!t) return "";
@@ -79,12 +91,14 @@ function plantEmbed(p: PlantRecord): EmbedBuilder {
       { name: "Location", value: p.location || "—", inline: true },
       { name: "Light", value: p.light || "—", inline: true },
       { name: "State", value: p.state || "ok", inline: true },
-      { name: "Water interval", value: p.waterIntervalDays ? `${p.waterIntervalDays}d` : "—", inline: true },
-      { name: "Last watered", value: fmtDate(p.lastWateredAt), inline: true },
-      { name: "Next due", value: fmtDate(p.nextWaterDueAt), inline: true },
+      { name: "Water interval", value: p.water_interval_days ? `${p.water_interval_days}d` : "—", inline: true },
+      { name: "Last watered", value: toDate(p.last_watered_at), inline: true },
+      { name: "Next due", value: toDate(p.next_water_due_at), inline: true }
     )
     .setFooter({ text: `ID ${p.id}` });
   if (p.photoUrl) e.setThumbnail(p.photoUrl);
+  if (p.image_url) e.setThumbnail(p.image_url);
+  if (p.notes) e.addFields({ name: "Notes", value: p.notes || '', inline: false})
   return e;
 }
 
@@ -93,10 +107,11 @@ async function uploadPhotoViaN8n(opts: {
   plantId: number;
   userId: string;
   attachment?: Attachment | null;
-  imageUrl?: string | null;
+  image_url?: string | null;
   caption?: string | null;
-}): Promise<ApiResp<{ photoUrl: string }>> {
-  let imageUrl = opts.imageUrl?.trim();
+}): Promise<ApiResp<{
+  imageUrl: string }>> {
+  let imageUrl = opts.image_url?.trim();
   if (!imageUrl && opts.attachment) {
     imageUrl = opts.attachment.url; // Discord CDN URL
   }
@@ -235,12 +250,12 @@ const command: SlashCommand = {
           // 2) optional photo upload (via n8n fetching the attachment URL)
           if (photo) {
             const uploaded = await uploadPhotoViaN8n({
-              plantId: plant.id, userId, attachment: photo, imageUrl: null, caption: "Initial photo",
+              plantId: plant.id, userId, attachment: photo, image_url: null, caption: "Initial photo",
             });
             if (uploaded.ok) {
               // persist photoUrl onto the plant
-              await plantApi("update", { id: plant.id, userId, photoUrl: uploaded.data.photoUrl });
-              plant.photoUrl = uploaded.data.photoUrl;
+              await plantApi("update", { id: plant.id, userId, photoUrl: uploaded.data.imageUrl });
+              plant.photoUrl = uploaded.data.imageUrl;
             }
           }
 
@@ -270,7 +285,7 @@ const command: SlashCommand = {
           }
           // summary + first 10 embeds
           const lines = items.slice(0, 10).map(p =>
-            `• **${p.name}** (ID ${p.id}) — ${p.species ?? "unknown"} — next due: ${fmtDate(p.nextWaterDueAt)}`
+            `• **${p.name}** (ID ${p.id}) — ${p.species ?? "unknown"} — next due: ${toDate(p.next_water_due_at)}`
           );
           await interaction.editReply({
             content: `You have **${items.length}** plant${items.length === 1 ? "" : "s"}:\n${lines.join("\n")}`,
@@ -307,6 +322,7 @@ const command: SlashCommand = {
         }
 
         /** -------- /plant water -------- */
+        // TODO implement me
         case "water": {
           const id = interaction.options.getInteger("id", true);
           const amountL = interaction.options.getNumber("amount_l") ?? undefined;
@@ -314,7 +330,7 @@ const command: SlashCommand = {
           const resp = await plantApi<PlantRecord>("water", { id, userId, amountL, note });
           if (!resp.ok) throw new Error(resp.error);
           await interaction.editReply({
-            content: `💧 Marked watered: **${resp.data.name}**. Next due **${fmtDate(resp.data.nextWaterDueAt)}**.`,
+            content: `💧 Marked watered: **${resp.data.name}**. Next due **${toDate(resp.data.next_water_due_at)}**.`,
             embeds: [plantEmbed(resp.data)],
           });
           return;
@@ -333,18 +349,19 @@ const command: SlashCommand = {
           }
 
           const uploaded = await uploadPhotoViaN8n({
-            plantId: id, userId, attachment: image, imageUrl, caption,
+            plantId: id, userId, attachment: image, image_url: imageUrl, caption,
           });
           if (!uploaded.ok) throw new Error(uploaded.error);
 
           // Persist canonical photoUrl on the plant (optional)
-          await plantApi("update", { id, userId, photoUrl: uploaded.data.photoUrl });
+          await plantApi("update", { id, userId, photoUrl: uploaded.data.imageUrl });
 
-          await interaction.editReply(`📷 Photo added. Stored at: ${uploaded.data.photoUrl}`);
+          await interaction.editReply(`📷 Photo added. Stored at: ${uploaded.data.imageUrl}`);
           return;
         }
 
         /** -------- /plant reminder -------- */
+        // TODO implement scanning for reminders each hour
         case "reminder": {
           const id = interaction.options.getInteger("id", true);
           const enabled = interaction.options.getBoolean("enabled");
