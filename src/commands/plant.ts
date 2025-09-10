@@ -112,7 +112,7 @@ async function uploadPhotoViaN8n(opts: {
 
 /** ============ Slash command ============ */
 
-constcommand: SlashCommand = {
+const command: SlashCommand = {
 // @ts-ignore
   data: new SlashCommandBuilder()
     .setName("plant")
