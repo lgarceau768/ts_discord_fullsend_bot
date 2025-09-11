@@ -8,6 +8,7 @@ import interactionCreate from "./events/interactionCreate.js";
 import ready from "./events/ready.js";
 import request from "./commands/request";
 import plant from './commands/plant.js'
+import {initPlantReminderJob} from "./jobs/plantReminder";
 
 const logger = pino({ level: env.LOG_LEVEL });
 
@@ -32,3 +33,8 @@ client
     logger.error(e, "Failed to login");
     process.exit(1);
   });
+
+client.once("ready", () => {
+    console.log(`Logged in as ${client.user?.tag}`);
+    initPlantReminderJob(client);
+});

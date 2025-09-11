@@ -374,8 +374,6 @@ const command: SlashCommand = {
                 const question = interaction.options.getString("question", true);
                 const userId = interaction.user.id;
 
-                await interaction.deferReply(); // ACK fast; no buttons/ephemeral complications
-
                 try {
                   // Call n8n with the exact body you specified
                   const resp = await plantApi<PlantCareAnswer>("care", {
