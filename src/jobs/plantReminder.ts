@@ -151,26 +151,46 @@ async function processOneHour(client: Client) {
     const today = ymd(now);
     const hhmm = localHHmm(now);
 
+    // Calculate the previous hour window
+    const prevHour = new Date(now);
+    prevHour.setMinutes(0, 0, 0);
+    prevHour.setHours(prevHour.getHours() - 1);
+    const prevHourHHmm = localHHmm(prevHour);
+
     const reminders = await fetchEnabledReminders();
 
-    // Log current set
     console.log(
-        `[plant-reminders] ${now.toISOString()} TZ=${TZ} have ${reminders.length} reminder(s); looking for time=${hhmm}`,
+        `[plant-reminders] ${now.toISOString()} TZ=${TZ} have ${reminders.length} reminder(s); checking for reminders from ${prevHourHHmm} to ${hhmm}`,
     );
     reminders.forEach((r) =>
         console.log(
-            ` • [${r.id}] plant=${r.plant_id} user=${r.user_id} ch=${r.channel_id ?? "-"} time=${r.time ?? "-"} interval=${r.water_interval_days ?? "-"
-            }`,
+            ` • [${r.id}] plant=${r.plant_id} user=${r.user_id} ch=${r.channel_id ?? "-"} time=${r.time ?? "-"} interval=${r.water_interval_days ?? "-"}`,
         ),
     );
 
     for (const r of reminders) {
-        // If a specific HH:mm is set, only run at that minute; if null, treat as “any top of hour”
-        const dueThisMinute =
-            (r.time && r.time.trim() === hhmm) ||
-            (!r.time && hhmm.endsWith(":00")); // run at top of hour if no time configured
+        let dueThisHour = false;
+        if (r.time) {
+            // If reminder has a specific time, check if it falls within the previous hour up to now
+            // e.g. if now is 14:23, prevHourHHmm is 13:00, so check for times between 13:00 and 14:23
+            const reminderTime = r.time.trim();
+            // Convert reminderTime to today's date in TZ
+            const [remHour, remMin] = reminderTime.split(":").map(Number);
+            const reminderDate = new Date(now);
+            reminderDate.setHours(remHour, remMin, 0, 0);
+            // If reminder time is after prevHour and <= now
+            if (reminderDate > prevHour && reminderDate <= now) {
+                dueThisHour = true;
+            }
+        } else {
+            // If no specific time, treat as "top of the hour" and allow for missed run in the last hour
+            // If now is 14:00, prevHour is 13:00, so run for both
+            if (hhmm.endsWith(":00") || prevHourHHmm.endsWith(":00")) {
+                dueThisHour = true;
+            }
+        }
 
-        if (!dueThisMinute) continue;
+        if (!dueThisHour) continue;
 
         // basic de-dup per plant per day
         const key = `${r.plant_id}:${today}`;
@@ -198,15 +218,12 @@ async function processOneHour(client: Client) {
 
     // Simple cleanup: keep set from growing beyond a day
     // (Reset the set when the date changes)
-    const resetAt = new Date(now);
-    resetAt.setUTCHours(23, 59, 59, 999);
     // No action needed here; on next process call (new day), keys won’t match today’s ymd.
 }
 
 /** Kicks off the hourly schedule. */
 export function initPlantReminderJob(client: Client) {
     // Run immediately on boot (so you don't wait an hour)
-    console.log(`[Plant Reminder Job]`);
     processOneHour(client).catch((e) =>
         console.warn("[plant-reminders] initial run error:", e?.message || e),
     );
