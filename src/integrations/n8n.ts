@@ -1,4 +1,5 @@
 import { env } from "../config.js";
+import { logger } from "../utils/logger.js";
 
 export type TraktType = "movie" | "show" | "both";
 
@@ -121,16 +122,24 @@ export async function callTraktSearch(
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (env.N8N_API_KEY) headers["Authorization"] = `Bearer ${env.N8N_API_KEY}`;
 
-  const res = await fetch(env.N8N_SEARCH_URL, {
+  const url = env.N8N_SEARCH_URL;
+  const method = "POST";
+  logger.debug({ url, method, payload: { query: query.slice(0, 200), type } }, "Calling n8n webhook");
+  const started = Date.now();
+  const res = await fetch(url, {
     method: "POST",
     headers,
     body: JSON.stringify({ query, type }),
   });
+  const durationMs = Date.now() - started;
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    logger.error({ url, method, status: res.status, durationMs, response: text?.slice(0, 200) }, "n8n webhook request failed");
     throw new Error(`n8n webhook failed (${res.status}): ${text || res.statusText}`);
   }
+
+  logger.debug({ url, method, status: res.status, durationMs }, "n8n webhook request succeeded");
 
   const data = (await res.json()) as TrackN8NResponse;
 

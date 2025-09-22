@@ -1,5 +1,6 @@
 // src/integrations/jellyseerr.ts
 import { env } from "../config.js";
+import { logger } from "../utils/logger.js";
 
 export type MediaType = "movie" | "tv";
 
@@ -89,12 +90,20 @@ export async function getDetails(
     mediaType: MediaType,
     tmdbId: number
 ): Promise<JellyseerrDetails> {
-  const res = await fetch(
-      `${baseUrl()}/api/v1/${mediaType === "tv" ? "tv" : "movie"}/${tmdbId}`,
-      { headers: authHeaders() }
-  );
-  if (!res.ok)
-    throw new Error(`Jellyseerr GET ${res.status}: ${await res.text().catch(() => "")}`);
+  const url = `${baseUrl()}/api/v1/${mediaType === "tv" ? "tv" : "movie"}/${tmdbId}`;
+  const method = "GET";
+  logger.debug({ url, method }, "Calling Jellyseerr API");
+  const started = Date.now();
+  const res = await fetch(url, { headers: authHeaders() });
+  const durationMs = Date.now() - started;
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    logger.error({ url, method, status: res.status, durationMs, response: text?.slice(0, 200) }, "Jellyseerr API request failed");
+    throw new Error(`Jellyseerr GET ${res.status}: ${text || res.statusText}`);
+  }
+
+  logger.debug({ url, method, status: res.status, durationMs }, "Jellyseerr API request succeeded");
   return res.json();
 }
 
@@ -145,14 +154,25 @@ export async function createRequest(
   if (merged.languageProfileId !== undefined) body.languageProfileId = merged.languageProfileId;
   if (merged.tags && merged.tags.length) body.tags = merged.tags;
 
-  const res = await fetch(`${baseUrl()}/api/v1/request`, {
+  const url = `${baseUrl()}/api/v1/request`;
+  const method = "POST";
+  logger.debug({ url, method, payload: body }, "Calling Jellyseerr API");
+  const started = Date.now();
+  const res = await fetch(url, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(body),
   });
 
-  if (!res.ok)
-    throw new Error(`Jellyseerr POST ${res.status}: ${await res.text().catch(() => "")}`);
+  const durationMs = Date.now() - started;
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    logger.error({ url, method, status: res.status, durationMs, response: text?.slice(0, 200) }, "Jellyseerr API request failed");
+    throw new Error(`Jellyseerr POST ${res.status}: ${text || res.statusText}`);
+  }
+
+  logger.debug({ url, method, status: res.status, durationMs }, "Jellyseerr API request succeeded");
 
   return res.json();
 }
