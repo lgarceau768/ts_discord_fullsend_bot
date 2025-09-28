@@ -1,5 +1,6 @@
 // src/integrations/jellyseerr.ts
 import { env } from "../config.js";
+import { loggedFetch } from "../utils/loggedFetch.js";
 
 export type MediaType = "movie" | "tv";
 
@@ -89,7 +90,7 @@ export async function getDetails(
     mediaType: MediaType,
     tmdbId: number
 ): Promise<JellyseerrDetails> {
-  const res = await fetch(
+  const res = await loggedFetch(
       `${baseUrl()}/api/v1/${mediaType === "tv" ? "tv" : "movie"}/${tmdbId}`,
       { headers: authHeaders() }
   );
@@ -145,7 +146,7 @@ export async function createRequest(
   if (merged.languageProfileId !== undefined) body.languageProfileId = merged.languageProfileId;
   if (merged.tags && merged.tags.length) body.tags = merged.tags;
 
-  const res = await fetch(`${baseUrl()}/api/v1/request`, {
+  const res = await loggedFetch(`${baseUrl()}/api/v1/request`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(body),

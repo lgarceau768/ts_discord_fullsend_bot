@@ -1,5 +1,4 @@
 import { Client, Collection, GatewayIntentBits } from "discord.js";
-import pino from "pino";
 import { env } from "./config.js";
 import ping from "./commands/ping.js";
 import search from "./commands/search.js";
@@ -8,9 +7,9 @@ import interactionCreate from "./events/interactionCreate.js";
 import ready from "./events/ready.js";
 import request from "./commands/request";
 import plant from './commands/plant.js'
+import watch from './commands/watch.js'
 import {initPlantReminderJob} from "./jobs/plantReminder";
-
-const logger = pino({ level: env.LOG_LEVEL });
+import { logger } from "./logger.js";
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -21,6 +20,7 @@ commands.set(search.data.name, search);
 commands.set(downloads.data.name, downloads);
 commands.set(request.data.name, request);
 commands.set(plant.data.name, plant);
+commands.set(watch.data.name, watch);
 
 // Wire up event handlers
 ready(client as any);

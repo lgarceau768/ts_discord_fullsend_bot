@@ -1,6 +1,7 @@
 import type { Client, TextBasedChannel } from "discord.js";
 import { EmbedBuilder } from "discord.js";
 import pg from "pg";
+import { loggedFetch } from "../utils/loggedFetch.js";
 
 type ReminderRow = {
     id: number;
@@ -67,7 +68,7 @@ async function plantApiGet(id: number, userId: string): Promise<PlantGet> {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (process.env.N8N_API_KEY) headers.Authorization = `Bearer ${process.env.N8N_API_KEY}`;
 
-    const res = await fetch(url, {
+    const res = await loggedFetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify({ action: "get", id, userId }),

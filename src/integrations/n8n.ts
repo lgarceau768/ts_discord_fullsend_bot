@@ -1,4 +1,5 @@
 import { env } from "../config.js";
+import { loggedFetch } from "../utils/loggedFetch.js";
 
 export type TraktType = "movie" | "show" | "both";
 
@@ -121,7 +122,7 @@ export async function callTraktSearch(
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (env.N8N_API_KEY) headers["Authorization"] = `Bearer ${env.N8N_API_KEY}`;
 
-  const res = await fetch(env.N8N_SEARCH_URL, {
+  const res = await loggedFetch(env.N8N_SEARCH_URL, {
     method: "POST",
     headers,
     body: JSON.stringify({ query, type }),

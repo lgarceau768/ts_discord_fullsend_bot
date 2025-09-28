@@ -6,6 +6,7 @@ import {
     TextChannel,
 } from "discord.js";
 import type {SlashCommand} from "./_types.js";
+import { loggedFetch } from "../utils/loggedFetch.js";
 
 /** ============ Types & helpers ============ */
 
@@ -56,7 +57,7 @@ async function plantApi<T = any>(action: string, payload: Record<string, any>): 
     const headers: Record<string, string> = {"Content-Type": "application/json"};
     if (N8N_KEY) headers["Authorization"] = `Bearer ${N8N_KEY}`;
 
-    const res = await fetch(PLANT_API, {
+    const res = await loggedFetch(PLANT_API, {
         method: "POST",
         headers,
         body: JSON.stringify({action, ...payload}),

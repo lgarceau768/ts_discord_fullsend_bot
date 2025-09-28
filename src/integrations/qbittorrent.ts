@@ -1,4 +1,5 @@
 import { env } from "../config.js";
+import { loggedFetch } from "../utils/loggedFetch.js";
 
 /**
  * Shape of a torrent returned by the qBittorrent `/torrents/info` API. Only
@@ -35,7 +36,7 @@ export async function getActiveDownloads(): Promise<QBTorrent[]> {
     const loginParams = new URLSearchParams();
     loginParams.append("username", env.QBIT_USERNAME);
     loginParams.append("password", env.QBIT_PASSWORD);
-    const loginRes = await fetch(`${env.QBIT_URL}/api/v2/auth/login`, {
+    const loginRes = await loggedFetch(`${env.QBIT_URL}/api/v2/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -52,7 +53,7 @@ export async function getActiveDownloads(): Promise<QBTorrent[]> {
       if (match) cookie = `SID=${match[1]}`;
     }
   }
-  const infoRes = await fetch(`${env.QBIT_URL}/api/v2/torrents/info?filter=downloading`, {
+  const infoRes = await loggedFetch(`${env.QBIT_URL}/api/v2/torrents/info?filter=downloading`, {
     headers: {
       Referer: env.QBIT_URL,
       ...(cookie ? { cookie } : {}),

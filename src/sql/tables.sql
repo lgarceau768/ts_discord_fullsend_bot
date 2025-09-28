@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS water_logs (
 -- reminders (one per plant/user)
 CREATE TABLE IF NOT EXISTS plant_reminders (
   id SERIAL PRIMARY KEY,
-  plant_id INT NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
+  plant_id INT NOT NULL,
   user_id TEXT NOT NULL,
   channel_id TEXT,
   guild_id TEXT,

@@ -5,6 +5,7 @@ import search from "./commands/search.js";
 import downloads from "./commands/downloads.js";
 import request from "./commands/request";
 import plant from './commands/plant.js';
+import watch from './commands/watch.js';
 
 // Determine registration scope
 const isGlobal = process.argv.includes("--global");
@@ -16,7 +17,7 @@ if (!isGlobal && !isGuild) {
 
 // Collect commands to register. Add new commands here.
 // @ts-ignore
-const commands: SlashCommandBuilder[] = [ping.data, search.data, downloads.data, request.data, plant.data];
+const commands: SlashCommandBuilder[] = [ping.data, search.data, downloads.data, request.data, plant.data, watch.data];
 const body = commands.map((c) => c.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN);
