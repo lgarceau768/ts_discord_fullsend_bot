@@ -1,0 +1,51 @@
+version: 2
+
+updates:
+  # 1) Node.js deps (works for npm/yarn/pnpm lockfiles)
+  - package-ecosystem: "npm"
+    directory: "/"          # location of package.json / lockfile
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    rebase-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "bot:dependabot"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(dev-deps)"
+      include: "scope"      # adds the package name into the title/commit
+    # Group to reduce PR noise
+    groups:
+      prod-minor-and-patch:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      dev-minor-and-patch:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      majors:
+        update-types:
+          - "major"
+        patterns:
+          - "*"             # put all majors in one PR; remove if you prefer 1 PR per dep
+
+  # 2) Keep GitHub Actions up to date (e.g., your CI workflows)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "09:15"
+      timezone: "America/New_York"
+    labels:
+      - "ci"
+      - "bot:dependabot"
+    commit-message:
+      prefix: "chore(actions)"
