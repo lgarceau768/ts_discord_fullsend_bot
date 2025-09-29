@@ -5,7 +5,7 @@ import {
     EmbedBuilder,
     TextChannel,
 } from "discord.js";
-import type {SlashCommand} from "./_types.js";
+import type { SlashCommand } from "./_types.js";
 import { loggedFetch } from "../utils/loggedFetch.js";
 
 /** ============ Types & helpers ============ */
@@ -247,7 +247,7 @@ const command: SlashCommand = {
                 ),
         ),
 
-    async execute(interaction) {
+    async execute(interaction: any) {
         const sub = interaction.options.getSubcommand(true);
         await interaction.deferReply(); // ACK quickly, then work
 

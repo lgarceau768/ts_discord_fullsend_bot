@@ -7,13 +7,16 @@
 %}
 
 {
-  "username": "Scotty Cameron Stock",
+  "username": "Price Watcher",
   "embeds": [
     {
       "title": "{{ site_name }}",
       "url": "{{ watch_url }}",
       "color": 4372701,
       "description": "Previous Price {{ restock.original_price}} Current Price: {{restock.price}}",
+      "thumbnail": {
+        "url": "https://cdn-icons-png.flaticon.com/512/5305/5305244.png"
+      }
       "fields": [
         {
           "name": "Source",

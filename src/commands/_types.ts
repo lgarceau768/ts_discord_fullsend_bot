@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, Client, RESTPostAPIChatInputApplicationCommandsJSONBody, SlashCommandBuilder, SlashCommandSubcommandsOnlyBuilder } from "discord.js";
 
 /**
  * A helper type describing the shape of a slash command in this project. Each
@@ -7,6 +7,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
  * interactions.
  */
 export type SlashCommand = {
-  data: SlashCommandBuilder;
-  execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
-};
+    data: RESTPostAPIChatInputApplicationCommandsJSONBody | Omit<SlashCommandBuilder, "addSubcommandGroup" | "addSubcommand">
+    | SlashCommandSubcommandsOnlyBuilder;
+    execute: (interaction: ChatInputCommandInteraction | any) => Promise<any | void>;
+}
