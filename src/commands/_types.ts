@@ -1,20 +1,16 @@
 import type {
-  ChatInputCommandInteraction,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
   SlashCommandBuilder,
   SlashCommandSubcommandsOnlyBuilder,
+  SlashCommandOptionsOnlyBuilder,
+  ChatInputCommandInteraction,
 } from 'discord.js';
 
-/**
- * A helper type describing the shape of a slash command in this project. Each
- * command must export an object with the `data` describing the command
- * structure and an asynchronous `execute` function that handles incoming
- * interactions.
- */
 export interface SlashCommand {
   data:
     | RESTPostAPIChatInputApplicationCommandsJSONBody
+    | SlashCommandSubcommandsOnlyBuilder
     | Omit<SlashCommandBuilder, 'addSubcommandGroup' | 'addSubcommand'>
-    | SlashCommandSubcommandsOnlyBuilder;
+    | SlashCommandOptionsOnlyBuilder;
   execute: (interaction: ChatInputCommandInteraction) => Promise<unknown>;
 }

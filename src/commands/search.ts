@@ -1,12 +1,8 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 import { callTraktSearch, type TraktType, type SearchItem } from '../integrations/n8n.js';
 import { setForThread, setForChannel } from '../state/searchCache.js';
+import { getErrorMessage } from '../utils/errors.js';
 
 import type { SlashCommand } from './_types.js';
 
@@ -28,8 +24,8 @@ function itemToEmbed(item: SearchItem, index: number): EmbedBuilder {
       text: item.type === 'show' ? 'TV Show • Trakt via n8n' : 'Movie • Trakt via n8n',
     });
 
-  const poster = (item as any).posterUrl ?? (item as any).poster_url;
-  const backdrop = (item as any).backdropUrl ?? (item as any).backdrop_url;
+  const poster = item.posterUrl ?? item.poster_url;
+  const backdrop = item.backdropUrl ?? item.backdrop_url;
   if (poster) embed.setThumbnail(poster);
   if (backdrop) embed.setImage(backdrop);
 
@@ -41,14 +37,12 @@ function itemToEmbed(item: SearchItem, index: number): EmbedBuilder {
   if (item.runtime !== null)
     fields.push({ name: 'Runtime', value: `${item.runtime}m`, inline: true });
   if (item.network) fields.push({ name: 'Network', value: item.network, inline: true });
-  if (fields.length) embed.addFields(fields as any);
+  if (fields.length) embed.addFields(...fields);
 
   return embed;
 }
 
-// @ts-expect-error
-const command: SlashCommand = {
-  // @ts-expect-error
+const command = {
   data: new SlashCommandBuilder()
     .setName('search')
     .setDescription('Search Trakt (via n8n) for a movie, TV show, or both, and open a thread')
@@ -128,12 +122,12 @@ const command: SlashCommand = {
       };
       setForThread(thread.id, entry);
       setForChannel(interaction.channelId, entry);
-    } catch (err: any) {
-      if ((err?.message as string).includes('fetch')) {
-        await interaction.editReply(`Failed to search due to a network issue`);
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      if (message.toLowerCase().includes('fetch')) {
+        await interaction.editReply('Failed to search due to a network issue');
       } else {
-        const reason = err?.message ?? 'Unknown error';
-        await interaction.editReply(`Failed to search: ${reason}`);
+        await interaction.editReply(`Failed to search: ${message}`);
       }
     }
   },

@@ -28,7 +28,11 @@ export async function listTags(): Promise<ChangeDetectionTagListResponse> {
   const base = requireUrl();
   const res = await fetch(`${base}/api/v1/tags`, { headers: headers() });
   if (!res.ok) throw new Error(`List tags failed: ${res.status} ${res.statusText}`);
-  return res.json() as Promise<ChangeDetectionTagListResponse>;
+  const data: unknown = await res.json();
+  if (!data || typeof data !== 'object') {
+    throw new Error('Unexpected response payload when listing tags');
+  }
+  return data as ChangeDetectionTagListResponse;
 }
 
 export async function createTag(title: string): Promise<string> {
@@ -38,12 +42,13 @@ export async function createTag(title: string): Promise<string> {
     headers: headers(),
     body: JSON.stringify({ title }),
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-  const json: any = await res.json().catch(() => ({}));
-  if (!res.ok)
-    throw new Error(`Create tag "${title}" failed: ${res.status} ${JSON.stringify(json)}`);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return json.uuid as string;
+  const json: unknown = await res.json().catch(() => ({}));
+  const record = json && typeof json === 'object' ? (json as Record<string, unknown>) : {};
+  const uuidValue = record.uuid;
+  if (!res.ok || typeof uuidValue !== 'string') {
+    throw new Error(`Create tag "${title}" failed: ${res.status} ${JSON.stringify(record)}`);
+  }
+  return uuidValue;
 }
 
 interface CreateWatchOpts {
@@ -62,8 +67,7 @@ interface CreateWatchOpts {
 
 export async function createWatch(opts: CreateWatchOpts): Promise<string> {
   const base = requireUrl();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const payload: any = {
+  const payload: Record<string, unknown> = {
     url: opts.url,
     title: opts.title ?? undefined,
     tags: opts.tagUUIDs,
@@ -86,10 +90,12 @@ export async function createWatch(opts: CreateWatchOpts): Promise<string> {
   });
 
   const text = await res.text();
-  let json: ChangeDetectionCreateResponse = {};
+  let json: ChangeDetectionCreateResponse | null = null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    json = JSON.parse(text);
+    const parsed: unknown = JSON.parse(text);
+    if (parsed && typeof parsed === 'object') {
+      json = parsed as ChangeDetectionCreateResponse;
+    }
   } catch {
     /* ignore */
   }
@@ -98,14 +104,13 @@ export async function createWatch(opts: CreateWatchOpts): Promise<string> {
     const message =
       json && Object.keys(json).length ? JSON.stringify(json) : text || res.statusText;
     logger.error(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       { status: res.status, body: text, url: opts.url, payload },
       'ChangeDetection create failed',
     );
     throw new Error(`ChangeDetection create failed: ${message}`);
   }
 
-  const uuid = json.uuid ?? json.watch_uuid ?? json.id;
+  const uuid = json?.uuid ?? json?.watch_uuid ?? json?.id;
   if (!uuid) throw new Error('ChangeDetection did not return a watch UUID');
 
   try {
@@ -185,10 +190,12 @@ export async function getWatchDetails(uuid: string): Promise<ChangeDetectionWatc
     headers: headers(),
   });
   const text = await res.text();
-  let json: ChangeDetectionWatchDetails = {};
+  let json: ChangeDetectionWatchDetails | null = null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    json = JSON.parse(text);
+    const parsed: unknown = JSON.parse(text);
+    if (parsed && typeof parsed === 'object') {
+      json = parsed as ChangeDetectionWatchDetails;
+    }
   } catch {
     /* ignore */
   }
@@ -199,6 +206,7 @@ export async function getWatchDetails(uuid: string): Promise<ChangeDetectionWatc
     );
     throw new Error(`Failed to fetch watch details: ${text || res.statusText}`);
   }
+  if (!json) throw new Error('Unexpected response payload when fetching watch details');
   return json;
 }
 
@@ -226,10 +234,11 @@ export async function getWatchHistory(uuid: string): Promise<ChangeDetectionHist
     throw new Error(`Failed to fetch watch history: ${text || res.statusText}`);
   }
   if (Array.isArray(json)) return json as ChangeDetectionHistoryEntry[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  if (json && typeof json === 'object' && Array.isArray((json as any).history)) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    return (json as any).history as ChangeDetectionHistoryEntry[];
+  if (json && typeof json === 'object') {
+    const history = (json as { history?: unknown }).history;
+    if (Array.isArray(history)) {
+      return history as ChangeDetectionHistoryEntry[];
+    }
   }
   return [];
 }
