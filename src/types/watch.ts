@@ -1,7 +1,7 @@
 import type {
   ChangeDetectionHistoryEntry,
   ChangeDetectionWatchDetails,
-} from "./changeDetection.js";
+} from './changeDetection.js';
 
 export interface PriceSnapshot {
   price?: string;
@@ -41,7 +41,12 @@ export interface WatchBase {
   cdGetWatchDetails(uuid: string): Promise<ChangeDetectionWatchDetails>;
   cdGetWatchHistory(uuid: string): Promise<ChangeDetectionHistoryEntry[]>;
   parseTags(input?: string | null): string[];
-  mkOwnerTags(userId: string, requesterTag: string, store?: string | null, extras?: string[]): string[];
+  mkOwnerTags(
+    userId: string,
+    requesterTag: string,
+    store?: string | null,
+    extras?: string[],
+  ): string[];
   dbInsertWatch(args: DbInsertWatchArgs): Promise<void>;
   dbListWatches(userId: string): Promise<WatchRecord[]>;
   dbDeleteWatch(userId: string, uuid: string): Promise<boolean>;
@@ -75,9 +80,9 @@ export interface CreateWatchInput {
   notificationUrl: string;
   notificationBody: string;
   notificationTitle: string;
-  notificationFormat?: "Markdown" | "Text" | "HTML";
+  notificationFormat?: 'Markdown' | 'Text' | 'HTML';
   trackLdjsonPriceData?: boolean;
-  fetchBackend?: "html_webdriver" | "html_requests";
+  fetchBackend?: 'html_webdriver' | 'html_requests';
   webdriverDelaySec?: number;
   intervalMinutes?: number;
 }
@@ -87,7 +92,7 @@ export interface UpdateWatchInput {
   title?: string;
   tagTitles?: string[];
   trackLdjsonPriceData?: boolean;
-  fetchBackend?: "html_webdriver" | "html_requests";
+  fetchBackend?: 'html_webdriver' | 'html_requests';
   webdriverDelaySec?: number;
   intervalMinutes?: number;
 }

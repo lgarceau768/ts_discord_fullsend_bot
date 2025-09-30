@@ -1,5 +1,5 @@
-import { env } from "../config.js";
-import { loggedFetch } from "../utils/loggedFetch.js";
+import { env } from '../config.js';
+import { loggedFetch } from '../utils/loggedFetch.js';
 
 /**
  * Shape of a torrent returned by the qBittorrent `/torrents/info` API. Only
@@ -28,18 +28,18 @@ export interface QBTorrent {
  */
 export async function getActiveDownloads(): Promise<QBTorrent[]> {
   if (!env.QBIT_URL) {
-    throw new Error("QBIT_URL environment variable is not set");
+    throw new Error('QBIT_URL environment variable is not set');
   }
   // If no username/password provided, assume no auth is required
-  let cookie = "";
+  let cookie = '';
   if (env.QBIT_USERNAME && env.QBIT_PASSWORD) {
     const loginParams = new URLSearchParams();
-    loginParams.append("username", env.QBIT_USERNAME);
-    loginParams.append("password", env.QBIT_PASSWORD);
+    loginParams.append('username', env.QBIT_USERNAME);
+    loginParams.append('password', env.QBIT_PASSWORD);
     const loginRes = await loggedFetch(`${env.QBIT_URL}/api/v2/auth/login`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        'Content-Type': 'application/x-www-form-urlencoded',
         Referer: env.QBIT_URL,
       },
       body: loginParams.toString(),
@@ -47,7 +47,7 @@ export async function getActiveDownloads(): Promise<QBTorrent[]> {
     if (!loginRes.ok) {
       throw new Error(`qBittorrent login failed with status ${loginRes.status}`);
     }
-    const setCookie = loginRes.headers.get("set-cookie");
+    const setCookie = loginRes.headers.get('set-cookie');
     if (setCookie) {
       const match = /SID=([^;]+)/.exec(setCookie);
       if (match) cookie = `SID=${match[1]}`;

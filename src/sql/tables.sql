@@ -1,6 +1,6 @@
 -- plants
 CREATE TABLE IF NOT EXISTS plants (
-  id SERIAL PRIMARY KEY,
+  id int4range PRIMARY KEY,
   user_id TEXT NOT NULL,
   name TEXT NOT NULL,
   species TEXT,
@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS plants (
 
 -- water logs
 CREATE TABLE IF NOT EXISTS water_logs (
-  id SERIAL PRIMARY KEY,
-  plant_id INT NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
+  id int PRIMARY KEY,
+  plant_id INT NOT NULL,
   user_id TEXT NOT NULL,
   amount_l NUMERIC,
   note TEXT,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS water_logs (
 
 -- reminders (one per plant/user)
 CREATE TABLE IF NOT EXISTS plant_reminders (
-  id SERIAL PRIMARY KEY,
+  id int PRIMARY KEY,
   plant_id INT NOT NULL,
   user_id TEXT NOT NULL,
   channel_id TEXT,

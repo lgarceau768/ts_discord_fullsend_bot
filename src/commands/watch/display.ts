@@ -1,16 +1,12 @@
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder } from 'discord.js';
+
 import type {
   ChangeDetectionHistoryEntry,
   ChangeDetectionWatchDetails,
-} from "../../types/changeDetection.js";
-import type {
-  DisplayEntry,
-  PriceSnapshot,
-  WatchBase,
-  WatchRecord,
-} from "../../types/watch.js";
+} from '../../types/changeDetection.js';
+import type { DisplayEntry, PriceSnapshot, WatchBase } from '../../types/watch.js';
 
-export type { PriceSnapshot, DisplayEntry } from "../../types/watch.js";
+export type { PriceSnapshot, DisplayEntry } from '../../types/watch.js';
 
 function firstDefined<T>(...values: (T | undefined | null)[]): T | undefined {
   for (const value of values) {
@@ -22,8 +18,8 @@ function firstDefined<T>(...values: (T | undefined | null)[]): T | undefined {
 }
 
 function toTimestampString(value: unknown): string | undefined {
-  if (typeof value === "string" && value.trim()) return value;
-  if (typeof value === "number" && Number.isFinite(value)) {
+  if (typeof value === 'string' && value.trim()) return value;
+  if (typeof value === 'number' && Number.isFinite(value)) {
     if (value > 1e12) return new Date(value).toISOString();
     if (value > 1e9) return new Date(value * 1000).toISOString();
   }
@@ -31,30 +27,36 @@ function toTimestampString(value: unknown): string | undefined {
 }
 
 function describeStock(raw: unknown): { label: string; bool: boolean | null } {
-  if (typeof raw === "boolean") return { label: raw ? "In stock" : "Out of stock", bool: raw };
-  if (typeof raw === "number") {
+  if (typeof raw === 'boolean') return { label: raw ? 'In stock' : 'Out of stock', bool: raw };
+  if (typeof raw === 'number') {
     const bool = raw > 0;
-    return { label: bool ? "In stock" : "Out of stock", bool };
+    return { label: bool ? 'In stock' : 'Out of stock', bool };
   }
-  if (typeof raw === "string") {
+  if (typeof raw === 'string') {
     const normalized = raw.trim().toLowerCase();
     if (!normalized) return { label: raw, bool: null };
-    if (["in stock", "instock", "available", "true", "yes"].some((token) => normalized.includes(token))) {
+    if (
+      ['in stock', 'instock', 'available', 'true', 'yes'].some((token) =>
+        normalized.includes(token),
+      )
+    ) {
       return { label: raw, bool: true };
     }
-    if (["out of stock", "oos", "sold out", "false", "no"].some((token) => normalized.includes(token))) {
+    if (
+      ['out of stock', 'oos', 'sold out', 'false', 'no'].some((token) => normalized.includes(token))
+    ) {
       return { label: raw, bool: false };
     }
     return { label: raw, bool: null };
   }
-  if (raw === null || raw === undefined) return { label: "Unknown", bool: null };
+  if (raw === null || raw === undefined) return { label: 'Unknown', bool: null };
   return { label: String(raw), bool: null };
 }
 
 function formatPrice(raw: unknown, currency?: unknown): string | undefined {
   if (raw === undefined || raw === null) return undefined;
-  const currencyStr = typeof currency === "string" ? currency.trim() : undefined;
-  const value = typeof raw === "number" ? raw.toFixed(2) : String(raw).trim();
+  const currencyStr = typeof currency === 'string' ? currency.trim() : undefined;
+  const value = typeof raw === 'number' ? raw.toFixed(2) : String(raw).trim();
   if (!value) return undefined;
   if (currencyStr) {
     if (/^[A-Za-z]{3}$/.test(currencyStr)) return `${currencyStr} ${value}`;
@@ -64,34 +66,59 @@ function formatPrice(raw: unknown, currency?: unknown): string | undefined {
 }
 
 interface PriceCandidate {
-  node: Record<string, unknown> & { [key: string]: any };
+  node: Record<string, unknown> & Record<string, any>;
   context: string;
   timestamp?: string;
   score: number;
 }
 
-function findPriceCandidate(root: Record<string, unknown>, context: string, timestamp?: string): PriceCandidate | null {
-  const queue: Array<{ node: Record<string, unknown>; path: string[] }> = [{ node: root, path: [] }];
+function findPriceCandidate(
+  root: Record<string, unknown>,
+  context: string,
+  timestamp?: string,
+): PriceCandidate | null {
+  const queue: { node: Record<string, unknown>; path: string[] }[] = [{ node: root, path: [] }];
   let best: PriceCandidate | null = null;
 
   while (queue.length) {
     const { node, path } = queue.shift()!;
     const entries = Object.entries(node);
-    const priceKeys = entries.filter(([key, val]) => /price|amount|cost/i.test(key) && val !== null && typeof val !== "object").map(([key]) => key);
-    const stockKeys = entries.filter(([key, val]) => /(in[_-]?stock|availability|available|stock)/i.test(key) && val !== null && typeof val !== "object").map(([key]) => key);
-    const currencyKeys = entries.filter(([key, val]) => /currency|symbol/i.test(key) && val !== null && typeof val !== "object").map(([key]) => key);
+    const priceKeys = entries
+      .filter(
+        ([key, val]) => /price|amount|cost/i.test(key) && val !== null && typeof val !== 'object',
+      )
+      .map(([key]) => key);
+    const stockKeys = entries
+      .filter(
+        ([key, val]) =>
+          /(in[_-]?stock|availability|available|stock)/i.test(key) &&
+          val !== null &&
+          typeof val !== 'object',
+      )
+      .map(([key]) => key);
+    const currencyKeys = entries
+      .filter(
+        ([key, val]) => /currency|symbol/i.test(key) && val !== null && typeof val !== 'object',
+      )
+      .map(([key]) => key);
 
-    const score = (priceKeys.length ? 3 : 0)
-      + (stockKeys.length ? 2 : 0)
-      + (currencyKeys.length ? 1 : 0)
-      + (path.some((segment) => /restock|price/i.test(segment)) ? 1 : 0);
+    const score =
+      (priceKeys.length ? 3 : 0) +
+      (stockKeys.length ? 2 : 0) +
+      (currencyKeys.length ? 1 : 0) +
+      (path.some((segment) => /restock|price/i.test(segment)) ? 1 : 0);
 
     if (score > 0 && (!best || score > best.score)) {
-      best = { node: node as Record<string, unknown> & { [key: string]: any }, score, context, timestamp };
+      best = {
+        node: node as Record<string, unknown> & Record<string, any>,
+        score,
+        context,
+        timestamp,
+      };
     }
 
     for (const [key, value] of entries) {
-      if (value && typeof value === "object") {
+      if (value && typeof value === 'object') {
         queue.push({ node: value as Record<string, unknown>, path: path.concat(key) });
       }
     }
@@ -106,17 +133,35 @@ export function extractPriceSnapshot(
 ): PriceSnapshot | null {
   const candidates: PriceCandidate[] = [];
   const pushCandidate = (node: unknown, context: string, timestamp?: unknown) => {
-    if (!node || typeof node !== "object") return;
+    if (!node || typeof node !== 'object') return;
     const ts = toTimestampString(timestamp);
     const candidate = findPriceCandidate(node as Record<string, unknown>, context, ts);
     if (candidate) candidates.push(candidate);
   };
 
   if (details) {
-    pushCandidate(details.latest_snapshot, "latest_snapshot", (details.latest_snapshot as any)?.timestamp ?? details.last_changed ?? details.last_checked);
-    pushCandidate(details.latest_data, "latest_data", (details.latest_data as any)?.timestamp ?? details.last_changed ?? details.last_checked);
-    pushCandidate(details.last_notification, "last_notification", details.last_notification?.timestamp ?? details.last_notification?.date ?? details.last_notification?.ts);
-    pushCandidate(details as Record<string, unknown>, "watch", details.last_changed ?? details.last_checked);
+    pushCandidate(
+      details.latest_snapshot,
+      'latest_snapshot',
+      (details.latest_snapshot as any)?.timestamp ?? details.last_changed ?? details.last_checked,
+    );
+    pushCandidate(
+      details.latest_data,
+      'latest_data',
+      (details.latest_data as any)?.timestamp ?? details.last_changed ?? details.last_checked,
+    );
+    pushCandidate(
+      details.last_notification,
+      'last_notification',
+      details.last_notification?.timestamp ??
+        details.last_notification?.date ??
+        details.last_notification?.ts,
+    );
+    pushCandidate(
+      details as Record<string, unknown>,
+      'watch',
+      details.last_changed ?? details.last_checked,
+    );
   }
 
   history.forEach((entry, index) => {
@@ -186,14 +231,17 @@ export function extractPriceSnapshot(
   const price = formatPrice(priceRaw, currencyRaw);
   const previousPrice = formatPrice(prevRaw, currencyRaw);
   const stock = describeStock(stockRaw);
-  const imageUrl = typeof imageRaw === "string" && imageRaw.trim().startsWith("http") ? imageRaw.trim() : undefined;
+  const imageUrl =
+    typeof imageRaw === 'string' && imageRaw.trim().startsWith('http')
+      ? imageRaw.trim()
+      : undefined;
 
   if (!price && !previousPrice && !stockRaw) return null;
 
   return {
     price,
     previousPrice,
-    currency: typeof currencyRaw === "string" ? currencyRaw : undefined,
+    currency: typeof currencyRaw === 'string' ? currencyRaw : undefined,
     inStockLabel: stock.label,
     inStock: stock.bool,
     context: best.context,
@@ -259,7 +307,7 @@ function resolveImageUrl(
     (details as any)?.screenshot,
     (details?.last_notification as any)?.image,
   );
-  if (typeof candidate === "string") {
+  if (typeof candidate === 'string') {
     const trimmed = candidate.trim();
     if (/^https?:\/\//i.test(trimmed)) return trimmed;
   }
@@ -272,19 +320,22 @@ function applyPriceFields(
   snapshot: PriceSnapshot | null,
   details: ChangeDetectionWatchDetails | undefined,
 ) {
-  const price = snapshot?.price ?? "—";
-  const previous = snapshot?.previousPrice ?? "—";
-  const stock = snapshot?.inStockLabel ?? "—";
+  const price = snapshot?.price ?? '—';
+  const previous = snapshot?.previousPrice ?? '—';
+  const stock = snapshot?.inStockLabel ?? '—';
 
   embed.addFields(
-    { name: "Current price", value: price, inline: true },
-    { name: "Previous price", value: previous, inline: true },
-    { name: "Availability", value: stock, inline: true },
+    { name: 'Current price', value: price, inline: true },
+    { name: 'Previous price', value: previous, inline: true },
+    { name: 'Availability', value: stock, inline: true },
   );
 
-  const updated = formatTimestamp(snapshot?.timestamp, details?.last_changed ?? details?.last_checked);
+  const updated = formatTimestamp(
+    snapshot?.timestamp,
+    details?.last_changed ?? details?.last_checked,
+  );
   if (updated) {
-    embed.addFields({ name: "Last updated", value: updated, inline: true });
+    embed.addFields({ name: 'Last updated', value: updated, inline: true });
   }
 }
 
@@ -292,7 +343,7 @@ export function buildMinimalListEmbed(base: WatchBase, entry: DisplayEntry): Emb
   const title = resolveListTitle(entry);
   const embed = new EmbedBuilder()
     .setTitle(title)
-    .setAuthor({ name: "Watch Snapshot", iconURL: base.icons.snapshot })
+    .setAuthor({ name: 'Watch Snapshot', iconURL: base.icons.snapshot })
     .setColor(colorForSnapshot(base, entry.priceSnapshot))
     .setFooter({ text: `Watch #${entry.index}` });
 
@@ -300,7 +351,7 @@ export function buildMinimalListEmbed(base: WatchBase, entry: DisplayEntry): Emb
     embed.setDescription(`⚠️ ${entry.errorMessage}`);
   }
 
-  embed.addFields({ name: "Product", value: formatProductLink(entry.record.url), inline: false });
+  embed.addFields({ name: 'Product', value: formatProductLink(entry.record.url), inline: false });
 
   const imageUrl = resolveImageUrl(base, entry.record.url, entry.details, entry.priceSnapshot);
   if (imageUrl) embed.setThumbnail(imageUrl);
@@ -313,14 +364,15 @@ export function buildMinimalListEmbed(base: WatchBase, entry: DisplayEntry): Emb
 export function buildFullListEmbed(base: WatchBase, entry: DisplayEntry): EmbedBuilder {
   const embed = buildMinimalListEmbed(base, entry);
 
-  const tags = Array.isArray(entry.record.tags) && entry.record.tags.length
-    ? entry.record.tags.map((tag) => `\`${tag}\``).join(" ")
-    : "—";
-  embed.addFields({ name: "Tags", value: tags, inline: false });
+  const tags =
+    Array.isArray(entry.record.tags) && entry.record.tags.length
+      ? entry.record.tags.map((tag) => `\`${tag}\``).join(' ')
+      : '—';
+  embed.addFields({ name: 'Tags', value: tags, inline: false });
 
   const created = formatTimestamp(entry.record.created_at);
   if (created) {
-    embed.addFields({ name: "Created", value: created, inline: false });
+    embed.addFields({ name: 'Created', value: created, inline: false });
   }
 
   embed.setFooter({ text: `Watch #${entry.index} · UUID ${entry.record.watch_uuid}` });
@@ -339,30 +391,35 @@ interface LatestEmbedInput {
 }
 
 export function buildLatestEmbed(base: WatchBase, input: LatestEmbedInput): EmbedBuilder {
-  const title = input.pageTitle?.trim() || input.details?.title?.trim() || hostFromUrl(input.watchUrl);
+  const title =
+    input.pageTitle?.trim() || input.details?.title?.trim() || hostFromUrl(input.watchUrl);
   const embed = new EmbedBuilder()
     .setTitle(`💰 ${title}`)
-    .setAuthor({ name: "Watch Snapshot", iconURL: base.icons.snapshot })
+    .setAuthor({ name: 'Watch Snapshot', iconURL: base.icons.snapshot })
     .setColor(colorForSnapshot(base, input.priceSnapshot))
-    .addFields({ name: "Watch UUID", value: `\`${input.uuid}\``, inline: true });
+    .addFields({ name: 'Watch UUID', value: `\`${input.uuid}\``, inline: true });
 
-  const tagsDisplay = input.tags.length ? input.tags.map((tag) => `\`${tag}\``).join(" ") : "—";
-  embed.addFields({ name: "Tags", value: tagsDisplay, inline: true });
-  embed.addFields({ name: "Product", value: formatProductLink(input.watchUrl), inline: false });
+  const tagsDisplay = input.tags.length ? input.tags.map((tag) => `\`${tag}\``).join(' ') : '—';
+  embed.addFields({ name: 'Tags', value: tagsDisplay, inline: true });
+  embed.addFields({ name: 'Product', value: formatProductLink(input.watchUrl), inline: false });
 
   const imageUrl = resolveImageUrl(base, input.watchUrl, input.details, input.priceSnapshot);
   if (imageUrl) embed.setThumbnail(imageUrl);
 
   applyPriceFields(embed, input.priceSnapshot, input.details);
   if (!input.priceSnapshot) {
-    embed.addFields({ name: "Price data", value: "No price or stock data reported yet.", inline: false });
+    embed.addFields({
+      name: 'Price data',
+      value: 'No price or stock data reported yet.',
+      inline: false,
+    });
   } else if (input.priceSnapshot.context) {
-    embed.addFields({ name: "Source", value: input.priceSnapshot.context, inline: true });
+    embed.addFields({ name: 'Source', value: input.priceSnapshot.context, inline: true });
   }
 
   if (input.details?.last_notification?.body) {
     embed.addFields({
-      name: input.details.last_notification.title ?? "Last notification",
+      name: input.details.last_notification.title ?? 'Last notification',
       value: truncate(String(input.details.last_notification.body), 1000),
       inline: false,
     });

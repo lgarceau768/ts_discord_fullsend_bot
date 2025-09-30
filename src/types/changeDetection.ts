@@ -4,7 +4,7 @@ export type ChangeDetectionCreateResponse = {
   watch_uuid?: string;
 } & Record<string, unknown>;
 
-export type ChangeDetectionWatchDetails = {
+export interface ChangeDetectionWatchDetails {
   uuid?: string;
   title?: string;
   url?: string;
@@ -20,9 +20,9 @@ export type ChangeDetectionWatchDetails = {
   latest_snapshot?: Record<string, unknown>;
   latest_data?: Record<string, unknown>;
   [key: string]: unknown;
-};
+}
 
-export type ChangeDetectionHistoryEntry = {
+export interface ChangeDetectionHistoryEntry {
   timestamp?: string | number;
   ts?: string | number;
   date?: string;
@@ -30,6 +30,6 @@ export type ChangeDetectionHistoryEntry = {
   data?: Record<string, unknown>;
   snapshot?: Record<string, unknown>;
   [key: string]: unknown;
-};
+}
 
 export type ChangeDetectionTagListResponse = Record<string, { uuid: string; title: string }>;

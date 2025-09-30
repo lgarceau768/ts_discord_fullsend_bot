@@ -1,24 +1,24 @@
 // src/integrations/jellyseerr.ts
-import { env } from "../config.js";
-import { loggedFetch } from "../utils/loggedFetch.js";
+import { env } from '../config.js';
+import { loggedFetch } from '../utils/loggedFetch.js';
 
-export type MediaType = "movie" | "tv";
+export type MediaType = 'movie' | 'tv';
 
-type JellyseerrMediaInfo = {
+interface JellyseerrMediaInfo {
   status?: number; // 1=Pending, 2=Approved, 3=Processing, 4=Available, ...
-};
+}
 
-export type JellyseerrDetails = {
+export interface JellyseerrDetails {
   id: number; // TMDB id
   name?: string; // tv
   title?: string; // movie
   overview?: string;
   posterPath?: string;
   mediaInfo?: JellyseerrMediaInfo;
-  seasons?: Array<{ seasonNumber: number }>;
-};
+  seasons?: { seasonNumber: number }[];
+}
 
-export type RequestOptions = {
+export interface RequestOptions {
   /** Request 4K quality profile (if configured). */
   is4k?: boolean;
   /** Auto-approve the request (if your Jellyseerr permissions allow). */
@@ -41,39 +41,25 @@ export type RequestOptions = {
 
   /** For TV requests you can pass explicit season numbers. */
   seasons?: number[];
-};
+}
 
 function baseUrl(): string {
-  if (!env.JELLYSEERR_URL) throw new Error("JELLYSEERR_URL is not configured");
-  return env.JELLYSEERR_URL.replace(/\/$/, "");
+  if (!env.JELLYSEERR_URL) throw new Error('JELLYSEERR_URL is not configured');
+  return env.JELLYSEERR_URL.replace(/\/$/, '');
 }
 
 function authHeaders(): Record<string, string> {
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (env.JELLYSEERR_API_KEY) h["X-Api-Key"] = env.JELLYSEERR_API_KEY;
+  const h: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (env.JELLYSEERR_API_KEY) h['X-Api-Key'] = env.JELLYSEERR_API_KEY;
   return h;
 }
 
 function parseBool(v: unknown): boolean | undefined {
   if (v == null) return undefined;
   const s = String(v).trim().toLowerCase();
-  if (["1", "true", "yes", "y", "on"].includes(s)) return true;
-  if (["0", "false", "no", "n", "off"].includes(s)) return false;
+  if (['1', 'true', 'yes', 'y', 'on'].includes(s)) return true;
+  if (['0', 'false', 'no', 'n', 'off'].includes(s)) return false;
   return undefined;
-}
-
-function parseNum(v: unknown): number | undefined {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : undefined;
-}
-
-function parseTagCsv(v: unknown): number[] | undefined {
-  if (!v) return undefined;
-  const arr = String(v)
-      .split(",")
-      .map((x) => Number(x.trim()))
-      .filter((n) => Number.isInteger(n) && n >= 0);
-  return arr.length ? Array.from(new Set(arr)) : undefined;
 }
 
 /** Build default RequestOptions from environment variables (all optional). */
@@ -86,16 +72,12 @@ function defaultsFromEnv(): RequestOptions {
   };
 }
 
-export async function getDetails(
-    mediaType: MediaType,
-    tmdbId: number
-): Promise<JellyseerrDetails> {
+export async function getDetails(mediaType: MediaType, tmdbId: number): Promise<JellyseerrDetails> {
   const res = await loggedFetch(
-      `${baseUrl()}/api/v1/${mediaType === "tv" ? "tv" : "movie"}/${tmdbId}`,
-      { headers: authHeaders() }
+    `${baseUrl()}/api/v1/${mediaType === 'tv' ? 'tv' : 'movie'}/${tmdbId}`,
+    { headers: authHeaders() },
   );
-  if (!res.ok)
-    throw new Error(`Jellyseerr GET ${res.status}: ${await res.text().catch(() => "")}`);
+  if (!res.ok) throw new Error(`Jellyseerr GET ${res.status}: ${await res.text().catch(() => '')}`);
   return res.json();
 }
 
@@ -109,16 +91,16 @@ export async function getDetails(
  *   - Advanced TV + seasons: createRequest("tv", tmdbId, { seasons: [1,2], ... })
  */
 export async function createRequest(
-    mediaType: MediaType,
-    tmdbId: number,
-    seasonsOrOptions?: number[] | RequestOptions
+  mediaType: MediaType,
+  tmdbId: number,
+  seasonsOrOptions?: number[] | RequestOptions,
 ): Promise<any> {
   const envDefaults = defaultsFromEnv();
 
   let options: RequestOptions = {};
   if (Array.isArray(seasonsOrOptions)) {
     options.seasons = seasonsOrOptions;
-  } else if (seasonsOrOptions && typeof seasonsOrOptions === "object") {
+  } else if (seasonsOrOptions && typeof seasonsOrOptions === 'object') {
     options = { ...seasonsOrOptions };
   }
 
@@ -127,11 +109,11 @@ export async function createRequest(
 
   // Build body per Jellyseerr /request schema
   const body: any = {
-    mediaType,               // "movie" | "tv"
-    mediaId: tmdbId,         // TMDB id
+    mediaType, // "movie" | "tv"
+    mediaId: tmdbId, // TMDB id
   };
 
-  if (mediaType === "tv" && merged.seasons?.length) {
+  if (mediaType === 'tv' && merged.seasons?.length) {
     body.seasons = merged.seasons;
   }
 
@@ -144,24 +126,24 @@ export async function createRequest(
   if (merged.profileId !== undefined) body.profileId = merged.profileId;
   if (merged.rootFolder !== undefined) body.rootFolder = merged.rootFolder;
   if (merged.languageProfileId !== undefined) body.languageProfileId = merged.languageProfileId;
-  if (merged.tags && merged.tags.length) body.tags = merged.tags;
+  if (merged.tags?.length) body.tags = merged.tags;
 
   const res = await loggedFetch(`${baseUrl()}/api/v1/request`, {
-    method: "POST",
+    method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(body),
   });
 
   if (!res.ok)
-    throw new Error(`Jellyseerr POST ${res.status}: ${await res.text().catch(() => "")}`);
+    throw new Error(`Jellyseerr POST ${res.status}: ${await res.text().catch(() => '')}`);
 
   return res.json();
 }
 
 export function pickDefaultSeasons(totalSeasons: number): number[] {
-  const def = env.JELLYSEERR_SERIES_DEFAULT ?? "first"; // all | first | latest
+  const def = env.JELLYSEERR_SERIES_DEFAULT ?? 'first'; // all | first | latest
   if (!totalSeasons || totalSeasons < 1) return [1];
-  if (def === "all") return Array.from({ length: totalSeasons }, (_, i) => i + 1);
-  if (def === "latest") return [totalSeasons];
+  if (def === 'all') return Array.from({ length: totalSeasons }, (_, i) => i + 1);
+  if (def === 'latest') return [totalSeasons];
   return [1]; // first
 }
