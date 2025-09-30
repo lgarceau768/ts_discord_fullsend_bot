@@ -6,6 +6,7 @@ import {
 
 import { logger } from '../../logger.js';
 import type { WatchBase } from '../../types/watch.js';
+import { getErrorMessage } from '../../utils/errors.js';
 import { inferTitleFromUrl } from '../../utils/urlTitle.js';
 
 export const ADD_SUBCOMMAND_NAME = 'add';
@@ -122,11 +123,8 @@ export async function handleAddSubcommand(
       content: `🎉 Watch created in ChangeDetection and linked to your account.`,
       embeds: [embed],
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  } catch (error: unknown) {
     logger.error({ err: error }, 'Failed to process /watch add');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    await interaction.editReply(`❌ Failed to create watch: ${error?.message ?? 'Unknown error'}`);
+    await interaction.editReply(`❌ Failed to create watch: ${getErrorMessage(error)}`);
   }
 }

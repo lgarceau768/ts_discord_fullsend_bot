@@ -1,16 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   SlashCommandBuilder,
   ChannelType,
   EmbedBuilder,
   type Attachment,
-  type TextChannel,
+  type ChatInputCommandInteraction,
 } from 'discord.js';
 
+import { getErrorMessage } from '../utils/errors.js';
 import { loggedFetch } from '../utils/loggedFetch.js';
 
 import type { SlashCommand } from './_types.js';
@@ -51,7 +47,7 @@ interface PlantCareAnswer {
   question?: string;
 }
 
-interface ApiOk<T = any> {
+interface ApiOk<T> {
   ok: true;
   data: T;
 }
@@ -59,16 +55,27 @@ interface ApiErr {
   ok: false;
   error: string;
 }
-type ApiResp<T = any> = ApiOk<T> | ApiErr;
+type ApiResp<T> = ApiOk<T> | ApiErr;
 
 const PLANT_API = process.env.N8N_PLANT_API_URL;
 const N8N_KEY = process.env.N8N_API_KEY ?? '';
 
+/** Shared option accessors (minimize repetition & branching inside handlers) */
+const opt = {
+  str: (i: ChatInputCommandInteraction, name: string, required = false) =>
+    i.options.getString(name, required) ?? undefined,
+  int: (i: ChatInputCommandInteraction, name: string, required = false) =>
+    i.options.getInteger(name, required) ?? undefined,
+  num: (i: ChatInputCommandInteraction, name: string, required = false) =>
+    i.options.getNumber(name, required) ?? undefined,
+  att: (i: ChatInputCommandInteraction, name: string) => i.options.getAttachment(name) ?? undefined,
+  bool: (i: ChatInputCommandInteraction, name: string) => i.options.getBoolean(name) ?? undefined,
+  channelIdOverride: (i: ChatInputCommandInteraction, name: string) =>
+    i.options.getChannel(name)?.id,
+};
+
 /** Post JSON to n8n plant API. You route actions inside n8n. */
-async function plantApi<T = any>(
-  action: string,
-  payload: Record<string, any>,
-): Promise<ApiResp<T>> {
+async function plantApi<T>(action: string, payload: Record<string, unknown>): Promise<ApiResp<T>> {
   if (!PLANT_API) return { ok: false, error: 'N8N_PLANT_API_URL is not configured' };
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (N8N_KEY) headers.Authorization = `Bearer ${N8N_KEY}`;
@@ -80,43 +87,51 @@ async function plantApi<T = any>(
   });
 
   const text = await res.text();
-  let json: any;
+  let json: unknown;
   try {
     json = JSON.parse(text);
   } catch {
     return res.ok
-      ? ({ ok: true, data: text } as any)
+      ? { ok: true, data: text as unknown as T }
       : { ok: false, error: text || res.statusText };
   }
-  if (!res.ok) return { ok: false, error: json?.error ?? res.statusText };
-  if (json?.ok === false) return { ok: false, error: json?.error ?? 'Upstream error' };
-  return { ok: true, data: json?.data ?? json } as ApiOk<T>;
+
+  const record = json && typeof json === 'object' ? (json as Record<string, unknown>) : {};
+  if (!res.ok) {
+    const errorMessage = typeof record.error === 'string' ? record.error : res.statusText;
+    return { ok: false, error: errorMessage };
+  }
+  if (record.ok === false) {
+    const errorMessage = typeof record.error === 'string' ? record.error : 'Upstream error';
+    return { ok: false, error: errorMessage };
+  }
+  const dataField = record.data ?? record;
+  return { ok: true, data: dataField as T };
 }
 
 function toDate(inStr: string | undefined): string {
-  if (!inStr) return '';
+  if (!inStr) return '—';
   const iso = inStr.replaceAll('"', '').trim();
-  const [datePart, timePartRaw] = iso.split('T');
+  const [datePart, timePartRaw = '00:00:00'] = iso.split('T');
   const [year, month, day] = datePart.split('-').map(Number);
 
-  // strip trailing Z
   const timePart = timePartRaw.replace('Z', '');
-  const [time, millis] = timePart.split('.');
-  const [hour, minute, second] = time.split(':').map(Number);
+  const [time = '00:00:00', millis] = timePart.split('.');
+  const [hour = 0, minute = 0, second = 0] = time.split(':').map(Number);
 
   return new Date(
     Date.UTC(year, month - 1, day, hour, minute, second, millis ? Number(millis) : 0),
   ).toLocaleDateString();
 }
 
-function truncate(t?: string, n = 300) {
+function truncate(t?: string, n = 300): string {
   if (!t) return '';
-  return t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t;
+  return t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t;
 }
 
 function plantEmbed(p: PlantRecord): EmbedBuilder {
   const e = new EmbedBuilder()
-    .setTitle(`${p.name}${p.species ? ` — ${p.species}` : ''}`)
+    .setTitle(p.name + (p.species ? ' — ' + p.species : ''))
     .setDescription(truncate(p.notes))
     .addFields(
       { name: 'Location', value: p.location ?? '—', inline: true },
@@ -131,9 +146,11 @@ function plantEmbed(p: PlantRecord): EmbedBuilder {
       { name: 'Next due', value: toDate(p.next_water_due_at), inline: true },
     )
     .setFooter({ text: `ID ${p.id}` });
-  if (p.photoUrl) e.setThumbnail(p.photoUrl);
-  if (p.image_url) e.setThumbnail(p.image_url);
-  if (p.notes) e.addFields({ name: 'Notes', value: p.notes || '', inline: false });
+
+  const thumb = p.photoUrl ?? p.image_url;
+  if (thumb) e.setThumbnail(thumb);
+
+  if (p.notes) e.addFields({ name: 'Notes', value: p.notes, inline: false });
   return e;
 }
 
@@ -144,15 +161,9 @@ async function uploadPhotoViaN8n(opts: {
   attachment?: Attachment | null;
   image_url?: string | null;
   caption?: string | null;
-}): Promise<
-  ApiResp<{
-    imageUrl: string;
-  }>
-> {
+}): Promise<ApiResp<{ imageUrl: string }>> {
   let imageUrl = opts.image_url?.trim();
-  if (!imageUrl && opts.attachment) {
-    imageUrl = opts.attachment.url; // Discord CDN URL
-  }
+  if (!imageUrl && opts.attachment) imageUrl = opts.attachment.url;
   if (!imageUrl) return { ok: false, error: 'No image supplied' };
 
   return plantApi('photo.add', {
@@ -161,6 +172,238 @@ async function uploadPhotoViaN8n(opts: {
     imageUrl,
     caption: opts.caption ?? undefined,
   });
+}
+
+/** Shared context */
+const getCtx = (i: ChatInputCommandInteraction) => ({
+  userId: i.user.id,
+  guildId: i.guildId ?? 'DM',
+  channelId: i.channelId,
+});
+
+/** ============ Handlers (each < 15 CC) ============ */
+
+async function handleAdd(i: ChatInputCommandInteraction): Promise<void> {
+  const { userId, guildId, channelId } = getCtx(i);
+
+  const name = opt.str(i, 'name', true);
+  if (!name) throw new Error('Plant name is required.');
+  const species = opt.str(i, 'species');
+  const location = opt.str(i, 'location');
+  const light = (opt.str(i, 'light') as LightLevel | undefined) ?? undefined;
+  const waterIntervalDays = opt.int(i, 'water_interval_days');
+  const notes = opt.str(i, 'notes');
+  const photo = opt.att(i, 'photo');
+
+  const created = await plantApi<PlantRecord>('create', {
+    userId,
+    guildId,
+    channelId,
+    name,
+    species,
+    location,
+    light,
+    waterIntervalDays,
+    notes,
+  });
+  if (!created.ok) throw new Error(created.error);
+  const plant = created.data;
+
+  if (photo) {
+    const uploaded = await uploadPhotoViaN8n({
+      plantId: plant.id,
+      userId,
+      attachment: photo,
+      image_url: null,
+      caption: 'Initial photo',
+    });
+    if (uploaded.ok) {
+      await plantApi('update', { id: plant.id, userId, photoUrl: uploaded.data.imageUrl });
+      plant.photoUrl = uploaded.data.imageUrl;
+    }
+  }
+
+  await i.editReply({
+    content: `🌱 Added **${plant.name}** (ID ${plant.id}).`,
+    embeds: [plantEmbed(plant)],
+  });
+}
+
+async function handleGet(i: ChatInputCommandInteraction): Promise<void> {
+  const { userId } = getCtx(i);
+  const id = opt.int(i, 'id', true);
+  if (id === undefined || id === null) throw new Error('Plant ID is required.');
+
+  const resp = await plantApi<PlantRecord>('get', { id, userId });
+  if (!resp.ok) throw new Error(resp.error);
+
+  await i.editReply({ embeds: [plantEmbed(resp.data)] });
+}
+
+async function handleList(i: ChatInputCommandInteraction): Promise<void> {
+  const { userId } = getCtx(i);
+  const species = opt.str(i, 'species');
+  const location = opt.str(i, 'location');
+
+  const resp = await plantApi<PlantRecord[]>('list', { userId, species, location });
+  if (!resp.ok) throw new Error(resp.error);
+
+  const items = resp.data ?? [];
+  if (items.length === 0) {
+    await i.editReply('No plants found yet. Add one with `/plant add`.');
+    return;
+  }
+
+  const lines = items
+    .slice(0, 10)
+    .map(
+      (p) =>
+        `• **${p.name}** (ID ${p.id}) — ${p.species ?? 'unknown'} — next due: ${toDate(p.next_water_due_at)}`,
+    );
+
+  await i.editReply({
+    content: `You have **${items.length}** plant${items.length === 1 ? '' : 's'}:\n${lines.join('\n')}`,
+    embeds: items.slice(0, 5).map(plantEmbed),
+  });
+}
+
+async function handleUpdate(i: ChatInputCommandInteraction): Promise<void> {
+  const { userId } = getCtx(i);
+  const id = opt.int(i, 'id', true);
+  if (id === undefined || id === null) throw new Error('Plant ID is required.');
+
+  const payload = {
+    id,
+    userId,
+    name: opt.str(i, 'name'),
+    species: opt.str(i, 'species'),
+    location: opt.str(i, 'location'),
+    light: (opt.str(i, 'light') as LightLevel | undefined) ?? undefined,
+    waterIntervalDays: opt.int(i, 'water_interval_days'),
+    notes: opt.str(i, 'notes'),
+  };
+
+  const resp = await plantApi<PlantRecord>('update', payload);
+  if (!resp.ok) throw new Error(resp.error);
+
+  await i.editReply({
+    content: `✅ Updated **${resp.data.name}** (ID ${resp.data.id}).`,
+    embeds: [plantEmbed(resp.data)],
+  });
+}
+
+async function handleDelete(i: ChatInputCommandInteraction): Promise<void> {
+  const { userId } = getCtx(i);
+  const id = opt.int(i, 'id', true);
+  if (id === undefined || id === null) throw new Error('Plant ID is required.');
+
+  const resp = await plantApi<PlantRecord>('delete', { id, userId });
+  if (!resp.ok) throw new Error(resp.error);
+
+  await i.editReply(`🗑️ Deleted **${resp.data.name}** (ID ${resp.data.id}).`);
+}
+
+async function handleWater(i: ChatInputCommandInteraction): Promise<void> {
+  const { userId } = getCtx(i);
+  const id = opt.int(i, 'id', true);
+  if (id === undefined || id === null) throw new Error('Plant ID is required.');
+  const amountL = opt.num(i, 'amount_l');
+  const note = opt.str(i, 'note');
+
+  const resp = await plantApi<PlantRecord>('water', { id, userId, amountL, note });
+  if (!resp.ok) throw new Error(resp.error);
+
+  await i.editReply({
+    content: `💧 Marked watered: **${resp.data.name}**. Next due **${toDate(resp.data.next_water_due_at)}**.`,
+    embeds: [plantEmbed(resp.data)],
+  });
+}
+
+async function handleCare(i: ChatInputCommandInteraction): Promise<void> {
+  const { userId } = getCtx(i);
+  const id = opt.int(i, 'id', true);
+  if (id === undefined || id === null) throw new Error('Plant ID is required.');
+  const question = opt.str(i, 'question', true);
+  if (!question) throw new Error('Question is required.');
+
+  const resp = await plantApi<PlantCareAnswer>('care', {
+    userId,
+    id,
+    question,
+    now: Date.now(),
+  });
+  if (!resp.ok) throw new Error(resp.error);
+
+  const data = resp.data;
+  const name = data.name ?? `Plant ${id}`;
+  const thumb = data.image_url ?? data.imageUrl ?? undefined;
+
+  const ANSWER_LIMIT = 4000;
+  const answer = (data.answer ?? '').slice(0, ANSWER_LIMIT);
+  const q = data.question ?? question;
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🌿 Care plan — ${name} (ID ${id})`)
+    .setDescription([`**Question**`, q, '', `**Answer**`, answer].join('\n'))
+    .setFooter({ text: data.location ? `Location: ${data.location}` : 'Plant care' });
+
+  if (thumb) embed.setThumbnail(thumb);
+
+  await i.editReply({ embeds: [embed] });
+}
+
+async function handlePhoto(i: ChatInputCommandInteraction): Promise<void> {
+  const { userId } = getCtx(i);
+  const id = opt.int(i, 'id', true);
+  if (id === undefined || id === null) throw new Error('Plant ID is required.');
+  const image = opt.att(i, 'image');
+  const imageUrl = opt.str(i, 'image_url');
+  const caption = opt.str(i, 'caption');
+
+  if (!image && !imageUrl) {
+    await i.editReply('Please attach an image or provide `image_url`.');
+    return;
+  }
+
+  const uploaded = await uploadPhotoViaN8n({
+    plantId: id,
+    userId,
+    attachment: image,
+    image_url: imageUrl ?? null,
+    caption: caption ?? null,
+  });
+  if (!uploaded.ok) throw new Error(uploaded.error);
+
+  await plantApi('update', { id, userId, photoUrl: uploaded.data.imageUrl });
+
+  await i.editReply(`📷 Photo added. Stored at: ${uploaded.data.imageUrl}`);
+}
+
+async function handleReminder(i: ChatInputCommandInteraction): Promise<void> {
+  const { userId, guildId } = getCtx(i);
+  const id = opt.int(i, 'id', true);
+  if (id === undefined || id === null) throw new Error('Plant ID is required.');
+  const enabled = opt.bool(i, 'enabled');
+  const waterIntervalDays = opt.int(i, 'water_interval_days');
+  const time = opt.str(i, 'time');
+  const channelId = opt.channelIdOverride(i, 'channel') ?? i.channelId;
+
+  const resp = await plantApi<PlantRecord>('reminder.set', {
+    id,
+    userId,
+    enabled,
+    waterIntervalDays,
+    time,
+    channelId,
+    guildId,
+  });
+  if (!resp.ok) throw new Error(resp.error);
+
+  const cadence = waterIntervalDays ? `Cadence: every ${waterIntervalDays}d. ` : '';
+  const atTime = time ? `Time: ${time}. ` : '';
+  await i.editReply(
+    `⏰ Reminders ${enabled === false ? 'disabled' : 'updated'} for **${resp.data.name}**. ${cadence}${atTime}`,
+  );
 }
 
 /** ============ Slash command ============ */
@@ -303,251 +546,32 @@ const command: SlashCommand = {
         ),
     ),
 
-  async execute(interaction: any) {
+  async execute(interaction) {
+    await interaction.deferReply();
+
     const sub = interaction.options.getSubcommand(true);
-    await interaction.deferReply(); // ACK quickly, then work
+    const handlers: Record<string, (i: ChatInputCommandInteraction) => Promise<void>> = {
+      add: handleAdd,
+      get: handleGet,
+      list: handleList,
+      update: handleUpdate,
+      delete: handleDelete,
+      water: handleWater,
+      care: handleCare,
+      photo: handlePhoto,
+      reminder: handleReminder,
+    };
+
+    const handler = handlers[sub];
+    if (!handler) {
+      await interaction.editReply('Unknown subcommand.');
+      return;
+    }
 
     try {
-      // Current user & channel/thread context
-      const userId = interaction.user.id;
-      const guildId = interaction.guildId ?? 'DM';
-      const channelId = interaction.channelId;
-
-      switch (sub) {
-        /** -------- /plant add -------- */
-        case 'add': {
-          const name = interaction.options.getString('name', true);
-          const species = interaction.options.getString('species') ?? undefined;
-          const location = interaction.options.getString('location') ?? undefined;
-          const light = interaction.options.getString('light') as LightLevel | null;
-          const waterIntervalDays =
-            interaction.options.getInteger('water_interval_days') ?? undefined;
-          const notes = interaction.options.getString('notes') ?? undefined;
-          const photo = interaction.options.getAttachment('photo');
-
-          // 1) create plant record
-          const create = await plantApi<PlantRecord>('create', {
-            userId,
-            guildId,
-            channelId,
-            name,
-            species,
-            location,
-            light,
-            waterIntervalDays,
-            notes,
-          });
-          if (!create.ok) throw new Error(create.error);
-          const plant = create.data;
-
-          // 2) optional photo upload (via n8n fetching the attachment URL)
-          if (photo) {
-            const uploaded = await uploadPhotoViaN8n({
-              plantId: plant.id,
-              userId,
-              attachment: photo,
-              image_url: null,
-              caption: 'Initial photo',
-            });
-            if (uploaded.ok) {
-              // persist photoUrl onto the plant
-              await plantApi('update', { id: plant.id, userId, photoUrl: uploaded.data.imageUrl });
-              plant.photoUrl = uploaded.data.imageUrl;
-            }
-          }
-
-          await interaction.editReply({
-            content: `🌱 Added **${plant.name}** (ID ${plant.id}).`,
-            embeds: [plantEmbed(plant)],
-          });
-          return;
-        }
-
-        /** -------- /plant get -------- */
-        case 'get': {
-          const id = interaction.options.getInteger('id', true);
-          const resp = await plantApi<PlantRecord>('get', { id, userId });
-          if (!resp.ok) throw new Error(resp.error);
-          await interaction.editReply({ embeds: [plantEmbed(resp.data)] });
-          return;
-        }
-
-        /** -------- /plant list -------- */
-        case 'list': {
-          const species = interaction.options.getString('species') ?? undefined;
-          const location = interaction.options.getString('location') ?? undefined;
-          const resp = await plantApi<PlantRecord[]>('list', { userId, species, location });
-          if (!resp.ok) throw new Error(resp.error);
-          const items = resp.data || [];
-          if (!items.length) {
-            await interaction.editReply('No plants found yet. Add one with `/plant add`.');
-            return;
-          }
-          // summary + first 10 embeds
-          const lines = items
-            .slice(0, 10)
-            .map(
-              (p) =>
-                `• **${p.name}** (ID ${p.id}) — ${p.species ?? 'unknown'} — next due: ${toDate(p.next_water_due_at)}`,
-            );
-          await interaction.editReply({
-            content: `You have **${items.length}** plant${items.length === 1 ? '' : 's'}:\n${lines.join('\n')}`,
-            embeds: items.slice(0, 5).map(plantEmbed),
-          });
-          return;
-        }
-
-        /** -------- /plant update -------- */
-        case 'update': {
-          const id = interaction.options.getInteger('id', true);
-          const name = interaction.options.getString('name') ?? undefined;
-          const species = interaction.options.getString('species') ?? undefined;
-          const location = interaction.options.getString('location') ?? undefined;
-          const light = interaction.options.getString('light') as LightLevel | null;
-          const waterIntervalDays =
-            interaction.options.getInteger('water_interval_days') ?? undefined;
-          const notes = interaction.options.getString('notes') ?? undefined;
-
-          const resp = await plantApi<PlantRecord>('update', {
-            id,
-            userId,
-            name,
-            species,
-            location,
-            light: light ?? undefined,
-            waterIntervalDays,
-            notes,
-          });
-          if (!resp.ok) throw new Error(resp.error);
-          await interaction.editReply({
-            content: `✅ Updated **${resp.data.name}** (ID ${resp.data.id}).`,
-            embeds: [plantEmbed(resp.data)],
-          });
-          return;
-        }
-
-        /** -------- /plant delete -------- */
-        case 'delete': {
-          const id = interaction.options.getInteger('id', true);
-          const resp = await plantApi<PlantRecord>('delete', { id, userId });
-          if (!resp.ok) throw new Error(resp.error);
-          await interaction.editReply(`🗑️ Deleted **${resp.data.name}** (ID ${resp.data.id}).`);
-          return;
-        }
-
-        /** -------- /plant water -------- */
-        case 'water': {
-          const id = interaction.options.getInteger('id', true);
-          const amountL = interaction.options.getNumber('amount_l') ?? undefined;
-          const note = interaction.options.getString('note') ?? undefined;
-          const resp = await plantApi<PlantRecord>('water', { id, userId, amountL, note });
-          if (!resp.ok) throw new Error(resp.error);
-          await interaction.editReply({
-            content: `💧 Marked watered: **${resp.data.name}**. Next due **${toDate(resp.data.next_water_due_at)}**.`,
-            embeds: [plantEmbed(resp.data)],
-          });
-          return;
-        }
-
-        case 'care': {
-          const id = interaction.options.getInteger('id', true);
-          const question = interaction.options.getString('question', true);
-          const userId = interaction.user.id;
-
-          try {
-            // Call n8n with the exact body you specified
-            const resp = await plantApi<PlantCareAnswer>('care', {
-              userId,
-              id,
-              question,
-              now: Date.now(),
-            });
-
-            if (!resp.ok) throw new Error(resp.error);
-            const data = resp.data;
-
-            // Build a rich message
-            const name = data.name ?? `Plant ${id}`;
-            const thumb = data.image_url ?? data.imageUrl ?? undefined;
-
-            // Discord embed desc max is 4096 chars; trim just in case
-            const ANSWER_LIMIT = 4000;
-            const answer = (data.answer ?? '').slice(0, ANSWER_LIMIT);
-            const q = data.question ?? question;
-
-            const embed = new EmbedBuilder()
-              .setTitle(`🌿 Care plan — ${name} (ID ${id})`)
-              .setDescription([`**Question**`, q, ``, `**Answer**`, answer].join('\n'))
-              .setFooter({ text: data.location ? `Location: ${data.location}` : `Plant care` });
-
-            if (thumb) embed.setThumbnail(thumb);
-
-            await interaction.editReply({ embeds: [embed] });
-          } catch (e: any) {
-            await interaction.editReply(`❌ Care request failed: ${e?.message ?? 'Unknown error'}`);
-          }
-          return;
-        }
-
-        /** -------- /plant photo -------- */
-        case 'photo': {
-          const id = interaction.options.getInteger('id', true);
-          const image = interaction.options.getAttachment('image');
-          const imageUrl = interaction.options.getString('image_url');
-          const caption = interaction.options.getString('caption');
-
-          if (!image && !imageUrl) {
-            await interaction.editReply('Please attach an image or provide `image_url`.');
-            return;
-          }
-
-          const uploaded = await uploadPhotoViaN8n({
-            plantId: id,
-            userId,
-            attachment: image,
-            image_url: imageUrl,
-            caption,
-          });
-          if (!uploaded.ok) throw new Error(uploaded.error);
-
-          // Persist canonical photoUrl on the plant (optional)
-          await plantApi('update', { id, userId, photoUrl: uploaded.data.imageUrl });
-
-          await interaction.editReply(`📷 Photo added. Stored at: ${uploaded.data.imageUrl}`);
-          return;
-        }
-
-        /** -------- /plant reminder -------- */
-        case 'reminder': {
-          const id = interaction.options.getInteger('id', true);
-          const enabled = interaction.options.getBoolean('enabled');
-          const waterIntervalDays =
-            interaction.options.getInteger('water_interval_days') ?? undefined;
-          const time = interaction.options.getString('time') ?? undefined;
-          const channel = interaction.options.getChannel('channel') as TextChannel | null;
-
-          const resp = await plantApi<PlantRecord>('reminder.set', {
-            id,
-            userId,
-            enabled,
-            waterIntervalDays,
-            time, // e.g., "09:00" local
-            channelId: channel?.id ?? interaction.channelId,
-            guildId,
-          });
-          if (!resp.ok) throw new Error(resp.error);
-
-          await interaction.editReply(
-            `⏰ Reminders ${enabled === false ? 'disabled' : 'updated'} for **${resp.data.name}**. ` +
-              (waterIntervalDays ? `Cadence: every ${waterIntervalDays}d. ` : '') +
-              (time ? `Time: ${time}. ` : ''),
-          );
-          return;
-        }
-      }
-    } catch (err: any) {
-      const reason = err?.message ?? 'Unknown error';
-      await interaction.editReply(`❌ ${reason}`);
+      await handler(interaction);
+    } catch (err: unknown) {
+      await interaction.editReply(`❌ ${getErrorMessage(err)}`);
     }
   },
 };

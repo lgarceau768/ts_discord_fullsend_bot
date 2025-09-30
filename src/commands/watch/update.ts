@@ -2,6 +2,7 @@ import type { SlashCommandSubcommandBuilder, ChatInputCommandInteraction } from 
 
 import { logger } from '../../logger.js';
 import type { WatchBase } from '../../types/watch.js';
+import { getErrorMessage } from '../../utils/errors.js';
 import { inferTitleFromUrl } from '../../utils/urlTitle.js';
 
 import { buildLatestEmbed, extractPriceSnapshot } from './display.js';
@@ -109,11 +110,8 @@ export async function handleUpdateSubcommand(
       content: '✅ Watch updated.',
       embeds: [embed],
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  } catch (error: unknown) {
     logger.error({ err: error, userId: interaction.user.id, uuid }, 'Failed to update watch');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    await interaction.editReply(`❌ Failed to update watch: ${error?.message ?? 'Unknown error'}`);
+    await interaction.editReply(`❌ Failed to update watch: ${getErrorMessage(error)}`);
   }
 }

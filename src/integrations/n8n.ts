@@ -1,8 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { env } from '../config.js';
 import { loggedFetch } from '../utils/loggedFetch.js';
 
@@ -44,71 +39,139 @@ export interface SearchItem {
   network?: string; // for shows
 }
 
-function pickPoster(raw: any, obj: any): string | undefined {
-  return (
-    raw?.posterUrl ??
-    raw?.poster_url ??
-    obj?.posterUrl ??
-    obj?.poster_url ??
-    obj?.images?.poster?.url ??
-    undefined
-  );
-}
+type UnknownRecord = Record<string, unknown>;
 
-function pickBackdrop(raw: any, obj: any): string | undefined {
-  return (
-    raw?.backdropUrl ??
-    raw?.backdrop_url ??
-    obj?.backdropUrl ??
-    obj?.backdrop_url ??
-    obj?.images?.backdrop?.url ??
-    undefined
-  );
-}
+const toRecord = (value: unknown): UnknownRecord | null =>
+  value && typeof value === 'object' ? (value as UnknownRecord) : null;
 
-function normalizeResult(raw: any): SearchItem | null {
-  raw = raw.result ?? {};
+const getStringProp = (record: UnknownRecord | null, key: string): string | undefined => {
+  if (!record) return undefined;
+  const value = record[key];
+  return typeof value === 'string' ? value : undefined;
+};
 
-  // Already flat?
-  if (raw?.title && (raw.type === 'show' || raw.type === 'movie') && !raw.show && !raw.movie) {
-    const poster = pickPoster(raw, raw);
-    const backdrop = pickBackdrop(raw, raw);
-    return {
-      type: raw.type ?? '',
-      title: raw.title ?? '',
-      year: raw.year ?? '',
-      ids: raw.ids ?? {},
-      overview: raw.overview ?? '',
-      posterUrl: poster,
-      backdropUrl: backdrop,
-      genres: raw.genres ?? [],
-      rating: raw.rating ?? '',
-      network: raw.network ?? '',
-    };
+const getNumberProp = (record: UnknownRecord | null, key: string): number | undefined => {
+  if (!record) return undefined;
+  const value = record[key];
+  return typeof value === 'number' ? value : undefined;
+};
+
+const getRecordProp = (record: UnknownRecord | null, key: string): UnknownRecord | null => {
+  if (!record) return null;
+  return toRecord(record[key]);
+};
+
+const getStringArrayProp = (record: UnknownRecord | null, key: string): string[] | undefined => {
+  if (!record) return undefined;
+  const value = record[key];
+  if (!Array.isArray(value)) return undefined;
+  return value.filter((item): item is string => typeof item === 'string');
+};
+
+const getIds = (record: UnknownRecord | null): SearchItem['ids'] | undefined => {
+  if (!record) return undefined;
+  const idsRecord = getRecordProp(record, 'ids') ?? record;
+  const trakt = getNumberProp(idsRecord, 'trakt');
+  const tmdb = getNumberProp(idsRecord, 'tmdb');
+  const imdb = getStringProp(idsRecord, 'imdb');
+  const slug = getStringProp(idsRecord, 'slug');
+  const tvdb = getNumberProp(idsRecord, 'tvdb');
+  const tvrage = getNumberProp(idsRecord, 'tvrage');
+
+  if (
+    trakt === undefined &&
+    tmdb === undefined &&
+    imdb === undefined &&
+    slug === undefined &&
+    tvdb === undefined &&
+    tvrage === undefined
+  ) {
+    return undefined;
   }
 
-  // Trakt native search shape: { type, score, show|movie: {...} }
-  const kind: 'movie' | 'show' = raw?.type === 'show' || raw?.show ? 'show' : 'movie';
-  const obj = raw?.show ?? raw?.movie ?? raw ?? {};
+  return { trakt, tmdb, imdb, slug, tvdb, tvrage };
+};
 
-  const firstAiredYear = obj.first_aired ? new Date(obj.first_aired).getFullYear() : '';
-  const poster = pickPoster(raw, obj);
-  const backdrop = pickBackdrop(raw, obj);
+const pickPoster = (raw: UnknownRecord | null, obj: UnknownRecord | null): string | undefined =>
+  getStringProp(raw, 'posterUrl') ??
+  getStringProp(raw, 'poster_url') ??
+  getStringProp(obj, 'posterUrl') ??
+  getStringProp(obj, 'poster_url') ??
+  getStringProp(getRecordProp(getRecordProp(obj, 'images'), 'poster'), 'url');
+
+const pickBackdrop = (raw: UnknownRecord | null, obj: UnknownRecord | null): string | undefined =>
+  getStringProp(raw, 'backdropUrl') ??
+  getStringProp(raw, 'backdrop_url') ??
+  getStringProp(obj, 'backdropUrl') ??
+  getStringProp(obj, 'backdrop_url') ??
+  getStringProp(getRecordProp(getRecordProp(obj, 'images'), 'backdrop'), 'url');
+
+const parseFirstAiredYear = (record: UnknownRecord | null): number | undefined => {
+  const firstAired = getStringProp(record, 'first_aired');
+  if (!firstAired) return undefined;
+  const parsed = new Date(firstAired);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed.getUTCFullYear();
+};
+
+function normalizeResult(raw: unknown): SearchItem | null {
+  const wrapper = toRecord(raw);
+  if (!wrapper) return null;
+
+  const result = toRecord(wrapper.result) ?? wrapper;
+  const embeddedShow = getRecordProp(result, 'show') ?? getRecordProp(wrapper, 'show');
+  const embeddedMovie = getRecordProp(result, 'movie') ?? getRecordProp(wrapper, 'movie');
+  const primary = embeddedShow ?? embeddedMovie ?? result;
+
+  const type = getStringProp(result, 'type') ?? (embeddedShow ? 'show' : 'movie');
+  if (type !== 'show' && type !== 'movie') return null;
+
+  const title =
+    getStringProp(result, 'title') ??
+    getStringProp(result, 'name') ??
+    getStringProp(primary, 'title') ??
+    getStringProp(primary, 'name');
+  if (!title) return null;
+
+  const poster = pickPoster(wrapper, primary);
+  const backdrop = pickBackdrop(wrapper, primary);
+  const ids = getIds(primary) ?? getIds(wrapper);
+  const genres = getStringArrayProp(primary, 'genres') ?? [];
+  const rating = getNumberProp(primary, 'rating');
+  const runtime = getNumberProp(primary, 'runtime');
+  const network = getStringProp(primary, 'network');
+  const overview =
+    getStringProp(primary, 'overview') ??
+    getStringProp(result, 'overview') ??
+    getStringProp(wrapper, 'overview');
+  const year =
+    getNumberProp(primary, 'year') ?? getNumberProp(result, 'year') ?? parseFirstAiredYear(primary);
 
   return {
-    type: kind,
-    title: obj?.title ?? obj?.name ?? 'Unknown',
-    year: obj?.year ?? firstAiredYear,
-    ids: obj?.ids ?? raw?.ids ?? {},
-    overview: obj?.overview ?? raw?.overview,
+    type,
+    title,
+    year,
+    ids,
+    overview,
     posterUrl: poster,
     backdropUrl: backdrop,
-    genres: obj?.genres ?? [],
-    rating: obj?.rating,
-    runtime: obj?.runtime,
-    network: obj?.network,
+    genres,
+    rating,
+    runtime,
+    network,
   };
 }
+
+const isTrackResponse = (value: unknown): value is TrackN8NResponse & { results: unknown[] } => {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  const results = record.results;
+  return (
+    Array.isArray(results) &&
+    typeof record.query === 'string' &&
+    typeof record.query_original === 'string'
+  );
+};
 
 /**
  * Calls your n8n webhook to perform a Trakt search and returns normalized items.
@@ -138,15 +201,20 @@ export async function callTraktSearch(
     throw new Error(`n8n webhook failed (${res.status}): ${text || res.statusText}`);
   }
 
-  const data = (await res.json()) as TrackN8NResponse;
+  const json: unknown = await res.json();
+  if (!isTrackResponse(json)) {
+    throw new Error('Unexpected response payload from n8n search webhook');
+  }
 
-  const normalized = data.results.map(normalizeResult).filter((x): x is SearchItem => Boolean(x));
+  const normalized = json.results
+    .map((result) => normalizeResult(result))
+    .filter((item): item is SearchItem => item !== null);
 
   // keep responses compact for Discord
   return {
     results: normalized.slice(0, 5),
     ok: res.ok,
-    query: data.query,
-    query_original: data.query_original,
+    query: json.query,
+    query_original: json.query_original,
   };
 }

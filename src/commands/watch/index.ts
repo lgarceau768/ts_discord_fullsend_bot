@@ -341,3 +341,4 @@ const command: SlashCommand = {
 };
 
 export { watchBase, command };
+export default command;

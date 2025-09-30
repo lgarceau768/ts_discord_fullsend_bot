@@ -1,12 +1,12 @@
-/* eslint-disable no-console */
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 
+import type { SlashCommand } from './commands/_types.js';
 import downloads from './commands/downloads.js';
 import ping from './commands/ping.js';
 import plant from './commands/plant.js';
 import request from './commands/request';
 import search from './commands/search.js';
-import { command as watch } from './commands/watch/index.js';
+import watch from './commands/watch/index.js';
 import { env } from './config.js';
 import interactionCreate from './events/interactionCreate.js';
 import ready from './events/ready.js';
@@ -16,8 +16,7 @@ import { logger } from './logger.js';
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 // Register commands into a collection for easy lookup
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const commands = new Collection<string, any>();
+const commands = new Collection<string, SlashCommand>();
 commands.set(ping.data.name, ping);
 commands.set(search.data.name, search);
 commands.set(downloads.data.name, downloads);
@@ -26,8 +25,7 @@ commands.set(plant.data.name, plant);
 commands.set(watch.data.name, watch);
 
 // Wire up event handlers
-// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-ready(client as any);
+ready(client);
 interactionCreate(client, commands);
 
 // Log in
@@ -37,6 +35,6 @@ client.login(env.DISCORD_TOKEN).catch((e) => {
 });
 
 client.once('ready', () => {
-  console.log(`Logged in as ${client.user?.tag}`);
+  logger.info({ userId: client.user?.id }, `Logged in as ${client.user?.tag}`);
   initPlantReminderJob(client);
 });

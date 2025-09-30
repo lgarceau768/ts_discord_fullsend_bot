@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import type { SlashCommandSubcommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 
 import { logger } from '../../logger.js';
 import type { WatchBase } from '../../types/watch.js';
+import { getErrorMessage } from '../../utils/errors.js';
 import { inferTitleFromUrl } from '../../utils/urlTitle.js';
 
 import { buildLatestEmbed, extractPriceSnapshot } from './display.js';
@@ -44,8 +42,8 @@ export async function handleLatestSubcommand(
       return;
     }
 
-    let details;
-    let history = [] as Awaited<ReturnType<typeof base.cdGetWatchHistory>>;
+    let details: Awaited<ReturnType<typeof base.cdGetWatchDetails>> | undefined;
+    let history: Awaited<ReturnType<typeof base.cdGetWatchHistory>> = [];
     let errorMessage: string | undefined;
     let pageTitle: string | undefined;
 
@@ -54,22 +52,22 @@ export async function handleLatestSubcommand(
       if (details?.title && typeof details.title === 'string' && details.title.trim()) {
         pageTitle = details.title.trim();
       }
-    } catch (error: any) {
-      const msg = error?.message ?? 'Failed to fetch watch details.';
-      errorMessage = String(msg).slice(0, 200);
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      errorMessage = message.slice(0, 200);
       logger.error({ err: error, uuid }, 'Failed to fetch watch details for latest');
     }
 
     try {
       history = await base.cdGetWatchHistory(uuid);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(
         { err: error, uuid },
         'Failed to fetch watch history; continuing without history',
       );
       if (!errorMessage) {
-        const msg = error?.message ?? 'Failed to fetch watch history.';
-        errorMessage = String(msg).slice(0, 200);
+        const message = getErrorMessage(error);
+        errorMessage = message.slice(0, 200);
       }
     }
 
@@ -96,13 +94,11 @@ export async function handleLatestSubcommand(
         : `ℹ️ No price/stock data available yet for \`${uuid}\`.`,
       embeds: [embed],
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(
       { err: error, userId: interaction.user.id, uuid },
       'Failed to process /watch latest',
     );
-    await interaction.editReply(
-      `❌ Failed to fetch latest data: ${error?.message ?? 'Unknown error'}`,
-    );
+    await interaction.editReply(`❌ Failed to fetch latest data: ${getErrorMessage(error)}`);
   }
 }

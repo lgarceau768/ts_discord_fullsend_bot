@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 
 import { createRequest, getDetails, pickDefaultSeasons } from '../integrations/jellyseerr.js';
 import { getForThread, getForChannel } from '../state/searchCache.js';
+import { getErrorMessage } from '../utils/errors.js';
 
 import type { SlashCommand } from './_types.js';
 
@@ -21,9 +22,7 @@ function parseSeasons(
   return Array.from(new Set(parts)).sort((a, b) => a - b);
 }
 
-export default {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error
+const command = {
   data: new SlashCommandBuilder()
     .setName('request')
     .setDescription('Request an item from the most recent /search results in this thread')
@@ -100,10 +99,10 @@ export default {
           `✅ Requested **${item.title}** seasons ${seasons.join(', ')} (TMDB ${tmdb}).`,
         );
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      await interaction.editReply(`❌ Failed to request: ${e?.message ?? 'Unknown error'}`);
+    } catch (error: unknown) {
+      await interaction.editReply(`❌ Failed to request: ${getErrorMessage(error)}`);
     }
   },
 } satisfies SlashCommand;
+
+export default command;

@@ -1,128 +1,204 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import {
   Events,
   ActionRowBuilder,
   StringSelectMenuBuilder,
   type Client,
   type Collection,
+  type Message,
+  type ButtonInteraction,
+  type StringSelectMenuInteraction,
+  type ChatInputCommandInteraction,
+  ComponentType,
 } from 'discord.js';
 
+import type { SlashCommand } from '../commands/_types.js';
 import { createRequest, getDetails, pickDefaultSeasons } from '../integrations/jellyseerr.js';
+import { getErrorMessage } from '../utils/errors.js';
 import { ensureChildThread } from '../utils/thread.js';
 
-type CommandMap = Collection<string, any>;
+type CommandMap = Collection<string, SlashCommand>;
+type ReqKind = 'movie' | 'tv';
+
+const isGuildMessage = (message: Message<boolean>): message is Message<true> => message.inGuild();
+
+/** ---------- Guards ---------- */
+
+const isReqButton = (i: ButtonInteraction) => Boolean(i.customId) && i.customId.startsWith('req:');
+
+const isSeasonPicker = (i: StringSelectMenuInteraction) => i.customId.startsWith('seasonpick:');
+
+/** ---------- Parsers ---------- */
+
+const parseReqButtonId = (
+  id: string,
+): { kind: ReqKind | null; tmdbId: number | null; idx: number } => {
+  // format: req:<kind>:<tmdbId>:<idx?>
+  const [, kind, tmdbStr, idxStr] = id.split(':');
+  const tmdbId = Number(tmdbStr);
+  const idx = Number(idxStr ?? 0) || 0;
+
+  if ((kind !== 'movie' && kind !== 'tv') || Number.isNaN(tmdbId)) {
+    return { kind: null, tmdbId: null, idx: 0 };
+  }
+  return { kind, tmdbId, idx };
+};
+
+const parseSeasonPickerId = (id: string): number | null => {
+  // format: seasonpick:<tmdbId>
+  const [, tmdbStr] = id.split(':');
+  const tmdbId = Number(tmdbStr);
+  return Number.isNaN(tmdbId) ? null : tmdbId;
+};
+
+/** ---------- Sub-steps ---------- */
+
+const handleChatInput = async (
+  i: ChatInputCommandInteraction,
+  commands: CommandMap,
+): Promise<void> => {
+  const cmd = commands.get(i.commandName);
+  if (!cmd) {
+    await i.reply({ content: 'Unknown command.', ephemeral: true });
+    return;
+  }
+  await cmd.execute(i);
+};
+
+const getThreadForButton = async (i: ButtonInteraction, idx: number) => {
+  const parentMsg = i.message;
+  if (!isGuildMessage(parentMsg)) {
+    await i.followUp({
+      content: '❌ Unable to open a follow-up thread outside of a guild channel.',
+      ephemeral: true,
+    });
+    return null;
+  }
+  const guessTitle = parentMsg.embeds?.[idx]?.title ?? 'trakt-requests';
+  return ensureChildThread(parentMsg, `trakt: ${guessTitle}`);
+};
+
+const submitMovieRequest = async (i: ButtonInteraction, tmdbId: number) => {
+  const who = `<@${i.user.id}>`;
+  const thread = await getThreadForButton(i, 0);
+  if (!thread) return;
+
+  const status = await thread.send(`${who} 🎬 Submitting movie request (TMDB ${tmdbId})…`);
+  try {
+    await createRequest('movie', tmdbId);
+    await status.edit(`✅ ${who} Movie request submitted to Jellyseerr (TMDB ${tmdbId}).`);
+  } catch (error) {
+    await status.edit(`❌ ${who} Failed to request movie: ${getErrorMessage(error)}`);
+  }
+};
+
+const postSeasonMenu = async (i: ButtonInteraction, tmdbId: number, idx: number) => {
+  const who = `<@${i.user.id}>`;
+  const thread = await getThreadForButton(i, idx);
+  if (!thread) return;
+
+  const menu = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(`seasonpick:${tmdbId}`)
+      .setPlaceholder('Pick seasons to request')
+      .addOptions(
+        { label: 'All seasons', value: 'all' },
+        { label: 'First season only', value: 'first' },
+        { label: 'Latest season only', value: 'latest' },
+      ),
+  );
+
+  await thread.send({
+    content: `${who} 📺 Which seasons would you like to request for TMDB ${tmdbId}?`,
+    components: [menu],
+  });
+};
+
+const resolveSeasons = (choice: string, total: number): number[] => {
+  if (choice === 'all') return Array.from({ length: total }, (_, i) => i + 1);
+  if (choice === 'latest') return [Math.max(1, total)];
+  // default: 'first'
+  return [1];
+};
+
+const handleSeasonPicker = async (i: StringSelectMenuInteraction) => {
+  const tmdbId = parseSeasonPickerId(i.customId);
+  if (!tmdbId) {
+    await i.update({ content: '❌ Bad TMDB id.', components: [] });
+    return;
+  }
+
+  // ACK quickly; we’ll edit the menu message after the API call
+  await i.deferUpdate();
+
+  const choice = i.values?.[0] ?? 'first'; // all | first | latest
+
+  try {
+    const details = await getDetails('tv', tmdbId);
+    const total = Array.isArray(details.seasons)
+      ? details.seasons.filter((s) => (s?.seasonNumber ?? 0) > 0).length
+      : 0;
+
+    let seasons = resolveSeasons(choice, total);
+    if (!seasons.length) seasons = pickDefaultSeasons(total);
+
+    await createRequest('tv', tmdbId, seasons);
+
+    await i.message.edit({
+      content: `✅ TV request submitted for seasons ${seasons.join(', ')} (TMDB ${tmdbId}).`,
+      components: [],
+    });
+  } catch (error) {
+    await i.message.edit({
+      content: `❌ Failed to request TV show (TMDB ${tmdbId}): ${getErrorMessage(error)}`,
+      components: [],
+    });
+  }
+};
+
+const handleReqButton = async (i: ButtonInteraction) => {
+  if (!isReqButton(i)) return;
+
+  // ACK immediately so we never hit the 3s timeout
+  await i.deferUpdate();
+
+  const { kind, tmdbId, idx } = parseReqButtonId(i.customId ?? '');
+  if (!kind || !tmdbId) return;
+
+  if (kind === 'movie') {
+    await submitMovieRequest(i, tmdbId);
+    return;
+  }
+
+  // kind === 'tv'
+  await postSeasonMenu(i, tmdbId, idx);
+};
+
+/** ---------- Wire-up ---------- */
 
 export default (client: Client, commands: CommandMap) => {
-  client.on(Events.InteractionCreate, async (interaction) => {
-    // ---- Slash commands (unchanged)
-    if (interaction.isChatInputCommand()) {
-      const cmd = commands.get(interaction.commandName);
-      if (!cmd) {
-        await interaction.reply({ content: 'Unknown command.', ephemeral: true });
-        return;
-      }
-      await cmd.execute(interaction);
-      return;
-    }
-
-    // ======================
-    // Buttons on search msg
-    // ======================
-    if (interaction.isButton()) {
-      const id = interaction.customId ?? '';
-      if (!id.startsWith('req:')) return;
-
-      // ACK immediately so we never hit the 3s timeout
-      await interaction.deferUpdate();
-
-      const [, kind, tmdbStr, idxStr] = id.split(':');
-      const tmdbId = Number(tmdbStr);
-      const idx = Number(idxStr) || 0;
-
-      // Create or reuse a child thread off the search message
-      const parentMsg = interaction.message;
-      const guessTitle = parentMsg.embeds?.[idx]?.title ?? 'trakt-requests';
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
-      const thread = await ensureChildThread(parentMsg, `trakt: ${guessTitle}`);
-
-      const who = `<@${interaction.user.id}>`;
-
-      if (kind === 'movie') {
-        const status = await thread.send(`${who} 🎬 Submitting movie request (TMDB ${tmdbId})…`);
-        try {
-          await createRequest('movie', tmdbId);
-          await status.edit(`✅ ${who} Movie request submitted to Jellyseerr (TMDB ${tmdbId}).`);
-        } catch (e: any) {
-          await status.edit(`❌ ${who} Failed to request movie: ${e?.message ?? 'Unknown error'}`);
-        }
+  client.on(Events.InteractionCreate, (interaction) => {
+    // Keep listener type as void; run async logic in a thrown-away task
+    void (async () => {
+      if (interaction.isChatInputCommand()) {
+        await handleChatInput(interaction, commands);
         return;
       }
 
-      if (kind === 'tv') {
-        // Post a season picker **in the thread**
-        const menu = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId(`seasonpick:${tmdbId}`)
-            .setPlaceholder('Pick seasons to request')
-            .addOptions(
-              { label: 'All seasons', value: 'all' },
-              { label: 'First season only', value: 'first' },
-              { label: 'Latest season only', value: 'latest' },
-            ),
-        );
-        await thread.send({
-          content: `${who} 📺 Which seasons would you like to request for TMDB ${tmdbId}?`,
-          components: [menu],
-        });
+      // Narrow to components only
+      if (interaction.isButton()) {
+        await handleReqButton(interaction);
         return;
       }
 
-      return;
-    }
-
-    // ==========================
-    // Season picker in the thread
-    // ==========================
-    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('seasonpick:')) {
-      // ACK now; we'll edit the menu message after the API call
-      await interaction.deferUpdate();
-
-      const tmdbId = Number(interaction.customId.split(':')[1]);
-      const choice = interaction.values[0]; // all | first | latest
-
-      try {
-        const details = await getDetails('tv', tmdbId);
-        const total = Array.isArray(details.seasons)
-          ? details.seasons.filter((s) => (s?.seasonNumber ?? 0) > 0).length
-          : 0;
-
-        let seasons =
-          choice === 'all'
-            ? Array.from({ length: total }, (_, i) => i + 1)
-            : choice === 'latest'
-              ? [Math.max(1, total)]
-              : [1];
-
-        if (!seasons.length) seasons = pickDefaultSeasons(total);
-
-        await createRequest('tv', tmdbId, seasons);
-
-        // This updates the thread message that contained the menu
-        await interaction.message.edit({
-          content: `✅ TV request submitted for seasons ${seasons.join(', ')} (TMDB ${tmdbId}).`,
-          components: [],
-        });
-      } catch (e: any) {
-        await interaction.message.edit({
-          content: `❌ Failed to request TV show (TMDB ${tmdbId}): ${e?.message ?? 'Unknown error'}`,
-          components: [],
-        });
+      if (
+        interaction.isStringSelectMenu() &&
+        interaction.componentType === ComponentType.StringSelect &&
+        isSeasonPicker(interaction)
+      ) {
+        await handleSeasonPicker(interaction);
       }
-    }
+    })().catch((err) => {
+      console.error('InteractionCreate handler error:', err);
+    });
   });
 };

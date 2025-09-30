@@ -2,6 +2,7 @@ import type { SlashCommandSubcommandBuilder, ChatInputCommandInteraction } from 
 
 import { logger } from '../../logger.js';
 import type { WatchBase } from '../../types/watch.js';
+import { getErrorMessage } from '../../utils/errors.js';
 import { inferTitleFromUrl } from '../../utils/urlTitle.js';
 
 import {
@@ -50,8 +51,8 @@ export async function handleListSubcommand(
 
     for (let i = 0; i < displayRows.length; i += 1) {
       const record = displayRows[i];
-      let details;
-      let history = [] as Awaited<ReturnType<typeof base.cdGetWatchHistory>>;
+      let details: Awaited<ReturnType<typeof base.cdGetWatchDetails>> | undefined;
+      let history: Awaited<ReturnType<typeof base.cdGetWatchHistory>> = [];
       let priceSnapshot = null;
       let errorMessage: string | undefined;
       let pageTitle: string | undefined;
@@ -61,13 +62,10 @@ export async function handleListSubcommand(
         if (details?.title && typeof details.title === 'string' && details.title.trim()) {
           pageTitle = details.title.trim();
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        const msg = error?.message ?? 'Failed to fetch watch details.';
-        errorMessage = String(msg).slice(0, 200);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        errorMessage = message.slice(0, 200);
         logger.error(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           { err: error, uuid: record.watch_uuid },
           'Failed to fetch watch details for list',
         );
@@ -76,17 +74,14 @@ export async function handleListSubcommand(
       try {
         history = await base.cdGetWatchHistory(record.watch_uuid);
         priceSnapshot = extractPriceSnapshot(details, history);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           { err: error, uuid: record.watch_uuid },
           'Failed to fetch watch history for list',
         );
         if (!errorMessage) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          const msg = error?.message ?? 'Failed to fetch price history.';
-          errorMessage = String(msg).slice(0, 200);
+          const message = getErrorMessage(error);
+          errorMessage = message.slice(0, 200);
         }
       }
 
@@ -126,11 +121,8 @@ export async function handleListSubcommand(
       { userId: interaction.user.id, count: rows.length, mode },
       '/watch list completed',
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  } catch (error: unknown) {
     logger.error({ err: error, userId: interaction.user.id }, 'Failed to list watches');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    await interaction.editReply(`❌ Failed to list watches: ${error?.message ?? 'Unknown error'}`);
+    await interaction.editReply(`❌ Failed to list watches: ${getErrorMessage(error)}`);
   }
 }

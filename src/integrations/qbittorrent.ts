@@ -15,6 +15,18 @@ export interface QBTorrent {
   state: string;
 }
 
+function isQBTorrent(value: unknown): value is QBTorrent {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<QBTorrent>;
+  return (
+    typeof candidate.name === 'string' &&
+    typeof candidate.progress === 'number' &&
+    typeof candidate.dlspeed === 'number' &&
+    typeof candidate.eta === 'number' &&
+    typeof candidate.state === 'string'
+  );
+}
+
 /**
  * Authenticate against the qBittorrent WebUI API and fetch active
  * downloads. This helper handles the login handshake (which sets a
@@ -62,7 +74,8 @@ export async function getActiveDownloads(): Promise<QBTorrent[]> {
   if (!infoRes.ok) {
     throw new Error(`Failed to retrieve torrents: status ${infoRes.status}`);
   }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const data = await infoRes.json();
-  return Array.isArray(data) ? (data as QBTorrent[]) : [];
+  const data: unknown = await infoRes.json();
+  if (!Array.isArray(data)) return [];
+
+  return data.filter(isQBTorrent);
 }

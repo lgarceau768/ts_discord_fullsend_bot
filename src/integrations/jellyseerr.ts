@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 // src/integrations/jellyseerr.ts
 import { env } from '../config.js';
 import { loggedFetch } from '../utils/loggedFetch.js';
@@ -55,15 +54,14 @@ function authHeaders(): Record<string, string> {
   return h;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseBool(v: any): boolean | undefined {
-  if (v === null) return undefined;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-  const s = v.toString().trim().toLowerCase();
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  if (['1', 'true', 'yes', 'y', 'on'].includes(s)) return true;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  if (['0', 'false', 'no', 'n', 'off'].includes(s)) return false;
+function parseBool(value: unknown): boolean | undefined {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value !== 'string') return undefined;
+
+  const normalized = value.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) return false;
   return undefined;
 }
 
@@ -77,14 +75,20 @@ function defaultsFromEnv(): RequestOptions {
   };
 }
 
+const isJellyseerrDetails = (value: unknown): value is JellyseerrDetails =>
+  Boolean(value && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'number');
+
 export async function getDetails(mediaType: MediaType, tmdbId: number): Promise<JellyseerrDetails> {
   const res = await loggedFetch(
     `${baseUrl()}/api/v1/${mediaType === 'tv' ? 'tv' : 'movie'}/${tmdbId}`,
     { headers: authHeaders() },
   );
   if (!res.ok) throw new Error(`Jellyseerr GET ${res.status}: ${await res.text().catch(() => '')}`);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return res.json();
+  const data: unknown = await res.json();
+  if (!isJellyseerrDetails(data)) {
+    throw new Error('Unexpected response payload when fetching Jellyseerr details');
+  }
+  return data;
 }
 
 /**
@@ -100,8 +104,7 @@ export async function createRequest(
   mediaType: MediaType,
   tmdbId: number,
   seasonsOrOptions?: number[] | RequestOptions,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any> {
+): Promise<void> {
   const envDefaults = defaultsFromEnv();
 
   let options: RequestOptions = {};
@@ -115,10 +118,9 @@ export async function createRequest(
   const merged: RequestOptions = { ...envDefaults, ...options };
 
   // Build body per Jellyseerr /request schema
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const body: any = {
-    mediaType, // "movie" | "tv"
-    mediaId: tmdbId, // TMDB id
+  const body: Record<string, unknown> = {
+    mediaType,
+    mediaId: tmdbId,
   };
 
   if (mediaType === 'tv' && merged.seasons?.length) {
@@ -144,8 +146,6 @@ export async function createRequest(
 
   if (!res.ok)
     throw new Error(`Jellyseerr POST ${res.status}: ${await res.text().catch(() => '')}`);
-
-  return res.json();
 }
 
 export function pickDefaultSeasons(totalSeasons: number): number[] {

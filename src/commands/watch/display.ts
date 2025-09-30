@@ -1,8 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-base-to-string */
 import { EmbedBuilder } from 'discord.js';
 
 import type {
@@ -12,6 +7,24 @@ import type {
 import type { DisplayEntry, PriceSnapshot, WatchBase } from '../../types/watch.js';
 
 export type { PriceSnapshot, DisplayEntry } from '../../types/watch.js';
+
+type UnknownRecord = Record<string, unknown>;
+
+const toRecord = (value: unknown): UnknownRecord | null =>
+  value && typeof value === 'object' ? (value as UnknownRecord) : null;
+
+const pick = (record: UnknownRecord | null, key: string): unknown =>
+  record ? record[key] : undefined;
+
+const pickNested = (record: UnknownRecord | null, path: string[]): unknown => {
+  let current: unknown = record;
+  for (const segment of path) {
+    const currentRecord = toRecord(current);
+    if (!currentRecord) return undefined;
+    current = currentRecord[segment];
+  }
+  return current;
+};
 
 function firstDefined<T>(...values: (T | undefined | null)[]): T | undefined {
   for (const value of values) {
@@ -55,13 +68,34 @@ function describeStock(raw: unknown): { label: string; bool: boolean | null } {
     return { label: raw, bool: null };
   }
   if (raw === null || raw === undefined) return { label: 'Unknown', bool: null };
-  return { label: String(raw), bool: null };
+  if (typeof raw === 'object') {
+    try {
+      return { label: JSON.stringify(raw), bool: null };
+    } catch {
+      return { label: 'Unknown', bool: null };
+    }
+  }
+  if (typeof raw === 'bigint') return { label: raw.toString(), bool: null };
+  if (typeof raw === 'symbol') return { label: raw.description ?? 'Symbol', bool: null };
+  if (typeof raw === 'function') {
+    return { label: raw.name ? `[fn ${raw.name}]` : '[function]', bool: null };
+  }
+  return { label: 'Unknown', bool: null };
 }
 
 function formatPrice(raw: unknown, currency?: unknown): string | undefined {
   if (raw === undefined || raw === null) return undefined;
+  let value: string | undefined;
+  if (typeof raw === 'number') {
+    value = raw.toFixed(2);
+  } else if (typeof raw === 'string') {
+    value = raw.trim();
+  } else if (typeof raw === 'bigint') {
+    value = raw.toString();
+  } else {
+    return undefined;
+  }
   const currencyStr = typeof currency === 'string' ? currency.trim() : undefined;
-  const value = typeof raw === 'number' ? raw.toFixed(2) : String(raw).trim();
   if (!value) return undefined;
   if (currencyStr) {
     if (/^[A-Za-z]{3}$/.test(currencyStr)) return `${currencyStr} ${value}`;
@@ -71,22 +105,24 @@ function formatPrice(raw: unknown, currency?: unknown): string | undefined {
 }
 
 interface PriceCandidate {
-  node: Record<string, unknown> & Record<string, any>;
+  node: UnknownRecord;
   context: string;
   timestamp?: string;
   score: number;
 }
 
 function findPriceCandidate(
-  root: Record<string, unknown>,
+  root: UnknownRecord,
   context: string,
   timestamp?: string,
 ): PriceCandidate | null {
-  const queue: { node: Record<string, unknown>; path: string[] }[] = [{ node: root, path: [] }];
+  const queue: { node: UnknownRecord; path: string[] }[] = [{ node: root, path: [] }];
   let best: PriceCandidate | null = null;
 
   while (queue.length) {
-    const { node, path } = queue.shift()!;
+    const item = queue.shift();
+    if (!item) break;
+    const { node, path } = item;
     const entries = Object.entries(node);
     const priceKeys = entries
       .filter(
@@ -115,7 +151,7 @@ function findPriceCandidate(
 
     if (score > 0 && (!best || score > best.score)) {
       best = {
-        node: node as Record<string, unknown> & Record<string, any>,
+        node,
         score,
         context,
         timestamp,
@@ -124,7 +160,7 @@ function findPriceCandidate(
 
     for (const [key, value] of entries) {
       if (value && typeof value === 'object') {
-        queue.push({ node: value as Record<string, unknown>, path: path.concat(key) });
+        queue.push({ node: value as UnknownRecord, path: path.concat(key) });
       }
     }
   }
@@ -138,9 +174,10 @@ export function extractPriceSnapshot(
 ): PriceSnapshot | null {
   const candidates: PriceCandidate[] = [];
   const pushCandidate = (node: unknown, context: string, timestamp?: unknown) => {
-    if (!node || typeof node !== 'object') return;
+    const record = toRecord(node);
+    if (!record) return;
     const ts = toTimestampString(timestamp);
-    const candidate = findPriceCandidate(node as Record<string, unknown>, context, ts);
+    const candidate = findPriceCandidate(record, context, ts);
     if (candidate) candidates.push(candidate);
   };
 
@@ -148,12 +185,16 @@ export function extractPriceSnapshot(
     pushCandidate(
       details.latest_snapshot,
       'latest_snapshot',
-      (details.latest_snapshot as any)?.timestamp ?? details.last_changed ?? details.last_checked,
+      pick(toRecord(details.latest_snapshot), 'timestamp') ??
+        details.last_changed ??
+        details.last_checked,
     );
     pushCandidate(
       details.latest_data,
       'latest_data',
-      (details.latest_data as any)?.timestamp ?? details.last_changed ?? details.last_checked,
+      pick(toRecord(details.latest_data), 'timestamp') ??
+        details.last_changed ??
+        details.last_checked,
     );
     pushCandidate(
       details.last_notification,
@@ -162,18 +203,14 @@ export function extractPriceSnapshot(
         details.last_notification?.date ??
         details.last_notification?.ts,
     );
-    pushCandidate(
-      details as Record<string, unknown>,
-      'watch',
-      details.last_changed ?? details.last_checked,
-    );
+    pushCandidate(details as UnknownRecord, 'watch', details.last_changed ?? details.last_checked);
   }
 
   history.forEach((entry, index) => {
     const ts = entry.timestamp ?? entry.ts ?? entry.time ?? entry.date;
     pushCandidate(entry.snapshot, `history[${index}].snapshot`, ts);
     pushCandidate(entry.data, `history[${index}].data`, ts);
-    pushCandidate(entry as Record<string, unknown>, `history[${index}]`, ts);
+    pushCandidate(entry as UnknownRecord, `history[${index}]`, ts);
   });
 
   if (!candidates.length) return null;
@@ -182,55 +219,55 @@ export function extractPriceSnapshot(
   const node = best.node;
 
   const priceRaw = firstDefined(
-    node.current_price,
-    node.price_now,
-    node.new_price,
-    node.latest_price,
-    node.price,
-    node.amount,
-    node.value,
-    node.cost,
-    node.current?.price,
-    node.latest?.price,
+    pick(node, 'current_price'),
+    pick(node, 'price_now'),
+    pick(node, 'new_price'),
+    pick(node, 'latest_price'),
+    pick(node, 'price'),
+    pick(node, 'amount'),
+    pick(node, 'value'),
+    pick(node, 'cost'),
+    pickNested(node, ['current', 'price']),
+    pickNested(node, ['latest', 'price']),
   );
 
   const prevRaw = firstDefined(
-    node.previous_price,
-    node.old_price,
-    node.price_was,
-    node.previous,
-    node.previous?.price,
-    node.old?.price,
+    pick(node, 'previous_price'),
+    pick(node, 'old_price'),
+    pick(node, 'price_was'),
+    pick(node, 'previous'),
+    pickNested(node, ['previous', 'price']),
+    pickNested(node, ['old', 'price']),
   );
 
   const currencyRaw = firstDefined(
-    node.currency,
-    node.currency_symbol,
-    node.currencySymbol,
-    node.currencyCode,
-    node.currency_code,
-    node.current?.currency,
+    pick(node, 'currency'),
+    pick(node, 'currency_symbol'),
+    pick(node, 'currencySymbol'),
+    pick(node, 'currencyCode'),
+    pick(node, 'currency_code'),
+    pickNested(node, ['current', 'currency']),
   );
 
   const stockRaw = firstDefined(
-    node.in_stock,
-    node.inStock,
-    node.stock,
-    node.available,
-    node.availability,
-    node.is_available,
-    node.isAvailable,
+    pick(node, 'in_stock'),
+    pick(node, 'inStock'),
+    pick(node, 'stock'),
+    pick(node, 'available'),
+    pick(node, 'availability'),
+    pick(node, 'is_available'),
+    pick(node, 'isAvailable'),
   );
 
   const imageRaw = firstDefined(
-    node.image_url,
-    node.imageUrl,
-    node.image,
-    node.thumbnail,
-    node.thumbnail_url,
-    node.thumbnailUrl,
-    node.product_image,
-    node.productImage,
+    pick(node, 'image_url'),
+    pick(node, 'imageUrl'),
+    pick(node, 'image'),
+    pick(node, 'thumbnail'),
+    pick(node, 'thumbnail_url'),
+    pick(node, 'thumbnailUrl'),
+    pick(node, 'product_image'),
+    pick(node, 'productImage'),
   );
 
   const price = formatPrice(priceRaw, currencyRaw);
@@ -300,17 +337,18 @@ function resolveImageUrl(
   details?: ChangeDetectionWatchDetails,
   snapshot?: PriceSnapshot | null,
 ): string | undefined {
+  const detailsRecord = details ? (details as UnknownRecord) : null;
   const candidate = firstDefined(
     snapshot?.imageUrl,
-    (details?.latest_snapshot as any)?.image_url,
-    (details?.latest_snapshot as any)?.image,
-    (details?.latest_data as any)?.image_url,
-    (details?.latest_data as any)?.image,
-    (details as any)?.image_url,
-    (details as any)?.image,
-    (details as any)?.screenshot_url,
-    (details as any)?.screenshot,
-    (details?.last_notification as any)?.image,
+    pick(toRecord(details?.latest_snapshot), 'image_url'),
+    pick(toRecord(details?.latest_snapshot), 'image'),
+    pick(toRecord(details?.latest_data), 'image_url'),
+    pick(toRecord(details?.latest_data), 'image'),
+    pick(detailsRecord, 'image_url'),
+    pick(detailsRecord, 'image'),
+    pick(detailsRecord, 'screenshot_url'),
+    pick(detailsRecord, 'screenshot'),
+    pick(toRecord(details?.last_notification), 'image'),
   );
   if (typeof candidate === 'string') {
     const trimmed = candidate.trim();
