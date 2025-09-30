@@ -1,70 +1,115 @@
-# ts_discord_fullsend_bot
+# 🤖 Fullsend Discord Bot
 
-This Discord bot template provides a solid starting point for building out
-features on top of the Discord.js library. It comes with TypeScript,
-ESLint/Prettier, environment variable validation via Zod, and a command/event
-architecture. The following functionality is included out of the box:
+![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.10-43853d?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)
+![Discord.js](https://img.shields.io/badge/discord.js-14-5865f2?logo=discord&logoColor=white)
 
-- `/ping`: Test command that replies with the bot's latency.
-- `/search`: Search for movies or TV shows via a user-provided n8n workflow
-  (expected to integrate with Trakt). Returns up to five results as
-  nicely formatted embeds. Each result includes a **Request** button which
-  triggers a request against your Jellyseerr instance to queue the title for
-  download. TV show requests honour the `JELLYSEERR_SERIES_DEFAULT`
-  preference when choosing which seasons to download.
-- `/downloads`: Query your qBittorrent WebUI API for currently downloading
-  torrents and display their progress, speed and ETA. Useful for keeping tabs
-  on what your YAMS stack is doing.
+> An open-source, TypeScript-first Discord bot that keeps your media requests, download pipeline, price watches, and even houseplants on track. 🌱🎬
+
+## 🧭 Table of Contents
+- [Features](#features)
+- [Slash Commands](#slash-commands)
+- [Integrations](#integrations)
+- [Configuration](#configuration)
+- [Getting Started](#getting-started)
+- [Development Scripts](#development-scripts)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+- 🎯 **Slash command toolkit** – Modular command architecture with typed handlers (`SlashCommand`) and automatic registration scripts.
+- 🎬 **Media discovery & requests** – `/search` threads results from your n8n Trakt workflow and `/request` sends the pick straight to Jellyseerr.
+- 📥 **Download visibility** – `/downloads` summarizes qBittorrent activity with live progress, speeds, and ETAs.
+- 👀 **Price & change watching** – `/watch` subcommands talk to ChangeDetection.io, tag entries, and sync metadata into Postgres.
+- 🌿 **Plant concierge** – `/plant` commands log care, upload photos via n8n, schedule reminders, and keep notes organized.
+- 🧰 **Modern toolchain** – TypeScript, ESLint (flat configs), Prettier, lint-staged, Husky, and Docker-compose support out of the box.
+
+## Slash Commands
+| Command | What it does | Key integrations |
+| --- | --- | --- |
+| `/ping` | Health check that round-trips Discord and reports latency. | — |
+| `/search query:<title> type:<movie\|show\|both>` | Launches a result thread powered by Trakt via n8n, complete with rich embeds and quick follow-up instructions. | n8n, Trakt |
+| `/request index:<n> seasons:<mode?>` | Converts the cached `/search` result into a Jellyseerr request (smart defaults for seasons). | Jellyseerr |
+| `/downloads` | Lists active torrents, speeds, and ETAs from qBittorrent. | qBittorrent WebUI |
+| `/watch add|list|minimal|full|update|remove|latest` | Administers ChangeDetection watches, keeps history in Postgres, and renders informative embeds. | ChangeDetection.io, PostgreSQL |
+| `/plant add|get|list|update|delete|water|photo|care|reminder` | Manages your plant collection, water logs, reminders, and photo gallery through an n8n workflow. | n8n |
+
+## Integrations
+- 🔌 **Discord** – Built on `discord.js` v14 with slash command registration scripts for guild or global rollout.
+- 🤖 **n8n** – Customizable webhooks for media search, plant care, spell-check, and photo ingestion.
+- 🍿 **Jellyseerr** – Turns requests into actionable downloads, honoring default season settings.
+- 💾 **ChangeDetection.io** – Creates and synchronizes watches, stores tags, and fetches history snapshots.
+- 🐘 **PostgreSQL** – Persists user/watch relationships, sync state, and notification metadata.
+- 📦 **qBittorrent** – Surfaces download pipeline health without leaving Discord.
 
 ## Configuration
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Populate the required values:
+   - `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `DISCORD_GUILD_ID` *(optional dev guild)*
+   - `N8N_SEARCH_URL`, `N8N_PLANT_API_URL`, `N8N_API_KEY`
+   - `JELLYSEERR_URL`, `JELLYSEERR_API_KEY`, `JELLYSEERR_SERIES_DEFAULT`, `JELLYSEERR_4K`
+   - `QBIT_URL`, `QBIT_USERNAME`, `QBIT_PASSWORD`
+   - `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGPORT`, `PGSSL`
+   - `CHANGEDETECTION_URL`, `CHANGEDETECTION_NOTIFICATION_URL`, `CHANGEDETECTION_NOTIFICATION_TEMPLATE_PATH`
 
-Copy `.env.example` to `.env` and fill in the required values:
+> 💡 Tip: The `/watch` command will automatically create tags in ChangeDetection and mirror metadata locally once Postgres connectivity is configured.
 
-```bash
-cp .env.example .env
-```
-
-- `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` – obtained from the Discord Developer Portal.
-- `DISCORD_GUILD_ID` – optional; set for rapid dev command registration.
-- `N8N_SEARCH_URL` – your n8n webhook URL which should accept a JSON body
-  `{ "query": string, "type": "movie"|"show"|"both" }` and return
-  `{ "results": [] }` as documented in `src/integrations/n8n.ts`.
-- `JELLYSEERR_URL`, `JELLYSEERR_API_KEY` – API endpoint and key for your
-  Jellyseerr instance.
-- `JELLYSEERR_SERIES_DEFAULT` – determines which seasons to request when
-  clicking **Request** on a TV show search result (`all`, `first`, or
-  `latest`).
-- `JELLYSEERR_4K` – set to `true` to flag requests for 4K content.
-- `QBIT_URL`, `QBIT_USERNAME`, `QBIT_PASSWORD` – connection details for your
-  qBittorrent instance. Credentials are optional if your qBittorrent WebUI
-  doesn't require authentication.
-
-## Development
-
-Install dependencies and run the bot in watch mode:
-
+## Getting Started
 ```bash
 npm install
-npm run register:dev  # register slash commands to your dev guild
-npm run dev          # runs the bot with hot reload
+npm run register:dev   # Register slash commands against your dev guild
+npm run dev            # Hot-reload bot with TSX
 ```
 
-For production deployments, build and run:
-
+### Production / Deployment
 ```bash
 npm run build
 npm start
 ```
 
-Or use Docker:
-
+Or ship via Docker Compose:
 ```bash
 docker-compose up --build
 ```
 
-## Extending
+## Development Scripts
+| Script | Description |
+| --- | --- |
+| `npm run lint` | Lint the project with ESLint (type-aware for `src/**`). |
+| `npm run lint:fix` | Lint and apply auto-fixes. |
+| `npm run format` | Format using Prettier (settings mirrored in ESLint). |
+| `npm run typecheck` | Run `tsc --noEmit` for full type coverage. |
+| `npm run register:dev` / `npm run register:global` | Register slash commands on your guild or globally. |
+| `npm run build` | Compile TypeScript to `dist/`. |
 
-Add new slash commands by creating a file in `src/commands/` that exports a
-`SlashCommand` and then import it in `src/index.ts` and
-`src/registerCommands.ts`. Add event listeners by adding a file in
-`src/events/` and wiring it in `src/index.ts`.
+## Project Structure
+```
+src/
+├─ commands/            # Slash command handlers (ping, search, request, downloads, plant, watch/...)
+├─ events/              # Discord event listeners wired in `src/index.ts`
+├─ integrations/        # API adapters (Jellyseerr, n8n, qBittorrent, ChangeDetection)
+├─ jobs/                # Scheduled tasks and cron helpers
+├─ services/            # Domain services (change detection, icon helpers, etc.)
+├─ state/               # In-memory caches (e.g., search results)
+├─ utils/               # Shared utilities like loggedFetch
+└─ types/               # Shared TypeScript types
+```
+
+Additional resources:
+- `docker-compose.yaml` – Runtime stack for bot + supporting services.
+- `cron_job_instructions.md` – Guidance for scheduled tasks (plant reminders, watch updates, etc.).
+- `policy.yml` – Default security policy template.
+
+## Contributing
+Contributions are welcome! Feel free to open an issue or submit a pull request for features, bug fixes, or documentation updates. Please run `npm run lint` and `npm run typecheck` before submitting your PR to keep CI happy. 💪
+
+## License
+This project is open source. Add your preferred license file (e.g., `LICENSE`) to formally declare the terms for contributors and users.
+
+---
+
+Made with ❤️, TypeScript, and a healthy respect for automation.

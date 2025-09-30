@@ -1,17 +1,22 @@
-import { env } from "../config.js";
-import { logger } from "../utils/logger.js";
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { env } from '../config.js';
+import { loggedFetch } from '../utils/loggedFetch.js';
 
-export type TraktType = "movie" | "show" | "both";
+export type TraktType = 'movie' | 'show' | 'both';
 
-export type TrackN8NResponse = {
-  results: SearchItem[]
+export interface TrackN8NResponse {
+  results: SearchItem[];
   ok: boolean;
   query: string;
   query_original: string;
 }
 
-export type SearchItem = {
-  type: "movie" | "show";
+export interface SearchItem {
+  type: 'movie' | 'show';
   title: string;
   year?: number;
   result?: SearchItem;
@@ -35,29 +40,29 @@ export type SearchItem = {
 
   genres?: string[];
   rating?: number;
-  runtime?: number;  // minutes (movie) or avg episode runtime (show)
-  network?: string;  // for shows
-};
+  runtime?: number; // minutes (movie) or avg episode runtime (show)
+  network?: string; // for shows
+}
 
 function pickPoster(raw: any, obj: any): string | undefined {
   return (
-      raw?.posterUrl ??
-      raw?.poster_url ??
-      obj?.posterUrl ??
-      obj?.poster_url ??
-      obj?.images?.poster?.url ??
-      undefined
+    raw?.posterUrl ??
+    raw?.poster_url ??
+    obj?.posterUrl ??
+    obj?.poster_url ??
+    obj?.images?.poster?.url ??
+    undefined
   );
 }
 
 function pickBackdrop(raw: any, obj: any): string | undefined {
   return (
-      raw?.backdropUrl ??
-      raw?.backdrop_url ??
-      obj?.backdropUrl ??
-      obj?.backdrop_url ??
-      obj?.images?.backdrop?.url ??
-      undefined
+    raw?.backdropUrl ??
+    raw?.backdrop_url ??
+    obj?.backdropUrl ??
+    obj?.backdrop_url ??
+    obj?.images?.backdrop?.url ??
+    undefined
   );
 }
 
@@ -65,7 +70,7 @@ function normalizeResult(raw: any): SearchItem | null {
   raw = raw.result ?? {};
 
   // Already flat?
-  if (raw && raw.title && (raw.type === "show" || raw.type === "movie") && !raw.show && !raw.movie) {
+  if (raw?.title && (raw.type === 'show' || raw.type === 'movie') && !raw.show && !raw.movie) {
     const poster = pickPoster(raw, raw);
     const backdrop = pickBackdrop(raw, raw);
     return {
@@ -83,7 +88,7 @@ function normalizeResult(raw: any): SearchItem | null {
   }
 
   // Trakt native search shape: { type, score, show|movie: {...} }
-  const kind: "movie" | "show" = raw?.type === "show" || raw?.show ? "show" : "movie";
+  const kind: 'movie' | 'show' = raw?.type === 'show' || raw?.show ? 'show' : 'movie';
   const obj = raw?.show ?? raw?.movie ?? raw ?? {};
 
   const firstAiredYear = obj.first_aired ? new Date(obj.first_aired).getFullYear() : '';
@@ -92,7 +97,7 @@ function normalizeResult(raw: any): SearchItem | null {
 
   return {
     type: kind,
-    title: obj?.title ?? obj?.name ?? "Unknown",
+    title: obj?.title ?? obj?.name ?? 'Unknown',
     year: obj?.year ?? firstAiredYear,
     ids: obj?.ids ?? raw?.ids ?? {},
     overview: obj?.overview ?? raw?.overview,
@@ -112,34 +117,26 @@ function normalizeResult(raw: any): SearchItem | null {
  *   2) RawTraktResult[]
  */
 export async function callTraktSearch(
-    query: string,
-    type: TraktType = "both"
+  query: string,
+  type: TraktType = 'both',
 ): Promise<TrackN8NResponse> {
   if (!env.N8N_SEARCH_URL) {
-    throw new Error("N8N_SEARCH_URL is not configured");
+    throw new Error('N8N_SEARCH_URL is not configured');
   }
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (env.N8N_API_KEY) headers["Authorization"] = `Bearer ${env.N8N_API_KEY}`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (env.N8N_API_KEY) headers.Authorization = `Bearer ${env.N8N_API_KEY}`;
 
-  const url = env.N8N_SEARCH_URL;
-  const method = "POST";
-  logger.debug({ url, method, payload: { query: query.slice(0, 200), type } }, "Calling n8n webhook");
-  const started = Date.now();
-  const res = await fetch(url, {
-    method: "POST",
+  const res = await loggedFetch(env.N8N_SEARCH_URL, {
+    method: 'POST',
     headers,
     body: JSON.stringify({ query, type }),
   });
-  const durationMs = Date.now() - started;
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    logger.error({ url, method, status: res.status, durationMs, response: text?.slice(0, 200) }, "n8n webhook request failed");
+    const text = await res.text().catch(() => '');
     throw new Error(`n8n webhook failed (${res.status}): ${text || res.statusText}`);
   }
-
-  logger.debug({ url, method, status: res.status, durationMs }, "n8n webhook request succeeded");
 
   const data = (await res.json()) as TrackN8NResponse;
 
@@ -150,6 +147,6 @@ export async function callTraktSearch(
     results: normalized.slice(0, 5),
     ok: res.ok,
     query: data.query,
-    query_original: data.query_original
+    query_original: data.query_original,
   };
 }

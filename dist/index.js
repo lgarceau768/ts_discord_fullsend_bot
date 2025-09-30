@@ -7,8 +7,9 @@ import interactionCreate from "./events/interactionCreate.js";
 import ready from "./events/ready.js";
 import request from "./commands/request";
 import plant from './commands/plant.js';
+import watch from './commands/watch.js';
 import { initPlantReminderJob } from "./jobs/plantReminder";
-import { logger } from "./utils/logger.js";
+import { logger } from "./logger.js";
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 // Register commands into a collection for easy lookup
 const commands = new Collection();
@@ -17,6 +18,7 @@ commands.set(search.data.name, search);
 commands.set(downloads.data.name, downloads);
 commands.set(request.data.name, request);
 commands.set(plant.data.name, plant);
+commands.set(watch.data.name, watch);
 // Wire up event handlers
 ready(client);
 interactionCreate(client, commands);

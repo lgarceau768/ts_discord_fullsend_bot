@@ -1,5 +1,5 @@
 import { env } from "../config.js";
-import { logger } from "../utils/logger.js";
+import { loggedFetch } from "../utils/loggedFetch.js";
 function pickPoster(raw, obj) {
     return (raw?.posterUrl ??
         raw?.poster_url ??
@@ -68,22 +68,15 @@ export async function callTraktSearch(query, type = "both") {
     const headers = { "Content-Type": "application/json" };
     if (env.N8N_API_KEY)
         headers["Authorization"] = `Bearer ${env.N8N_API_KEY}`;
-    const url = env.N8N_SEARCH_URL;
-    const method = "POST";
-    logger.debug({ url, method, payload: { query: query.slice(0, 200), type } }, "Calling n8n webhook");
-    const started = Date.now();
-    const res = await fetch(url, {
+    const res = await loggedFetch(env.N8N_SEARCH_URL, {
         method: "POST",
         headers,
         body: JSON.stringify({ query, type }),
     });
-    const durationMs = Date.now() - started;
     if (!res.ok) {
         const text = await res.text().catch(() => "");
-        logger.error({ url, method, status: res.status, durationMs, response: text?.slice(0, 200) }, "n8n webhook request failed");
         throw new Error(`n8n webhook failed (${res.status}): ${text || res.statusText}`);
     }
-    logger.debug({ url, method, status: res.status, durationMs }, "n8n webhook request succeeded");
     const data = (await res.json());
     const normalized = data.results.map(normalizeResult).filter((x) => Boolean(x));
     // keep responses compact for Discord

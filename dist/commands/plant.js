@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, ChannelType, EmbedBuilder, } from "discord.js";
+import { loggedFetch } from "../utils/loggedFetch.js";
 const PLANT_API = process.env.N8N_PLANT_API_URL;
 const N8N_KEY = process.env.N8N_API_KEY || "";
 /** Post JSON to n8n plant API. You route actions inside n8n. */
@@ -8,7 +9,7 @@ async function plantApi(action, payload) {
     const headers = { "Content-Type": "application/json" };
     if (N8N_KEY)
         headers["Authorization"] = `Bearer ${N8N_KEY}`;
-    const res = await fetch(PLANT_API, {
+    const res = await loggedFetch(PLANT_API, {
         method: "POST",
         headers,
         body: JSON.stringify({ action, ...payload }),
