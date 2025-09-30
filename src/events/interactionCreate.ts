@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import {
   Events,
   ActionRowBuilder,
@@ -41,6 +46,7 @@ export default (client: Client, commands: CommandMap) => {
       // Create or reuse a child thread off the search message
       const parentMsg = interaction.message;
       const guessTitle = parentMsg.embeds?.[idx]?.title ?? 'trakt-requests';
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
       const thread = await ensureChildThread(parentMsg, `trakt: ${guessTitle}`);
 
@@ -117,7 +123,6 @@ export default (client: Client, commands: CommandMap) => {
           components: [],
         });
       }
-      return;
     }
   });
 };

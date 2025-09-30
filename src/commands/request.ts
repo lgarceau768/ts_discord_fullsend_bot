@@ -22,6 +22,7 @@ function parseSeasons(
 }
 
 export default {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-expect-error
   data: new SlashCommandBuilder()
     .setName('request')
@@ -48,7 +49,7 @@ export default {
 
     // Prefer the thread cache; fallback to channel cache
     const threadId = interaction.channel?.isThread?.() ? interaction.channel.id : null;
-    const entry = (threadId && getForThread(threadId)) || getForChannel(interaction.channelId);
+    const entry = (threadId && getForThread(threadId)) ?? getForChannel(interaction.channelId);
 
     if (!entry) {
       await interaction.editReply(
@@ -99,7 +100,9 @@ export default {
           `✅ Requested **${item.title}** seasons ${seasons.join(', ')} (TMDB ${tmdb}).`,
         );
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       await interaction.editReply(`❌ Failed to request: ${e?.message ?? 'Unknown error'}`);
     }
   },

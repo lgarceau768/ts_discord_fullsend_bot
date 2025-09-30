@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { Client } from 'discord.js';
 
 /**

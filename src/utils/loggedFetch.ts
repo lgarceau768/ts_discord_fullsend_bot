@@ -25,7 +25,8 @@ function extractMethod(input: FetchInput, init?: FetchInit): string {
 }
 
 function bodySummary(init?: FetchInit): string | undefined {
-  if (init?.body == null) return undefined;
+  if (init === undefined) return undefined;
+  if (init?.body === null) return undefined;
   if (typeof init.body === 'string') return `string(${init.body.length})`;
   if (init.body instanceof URLSearchParams) return 'URLSearchParams';
   if (init.body instanceof ArrayBuffer || ArrayBuffer.isView(init.body)) return 'ArrayBuffer';
@@ -43,7 +44,7 @@ export async function loggedFetch(input: FetchInput, init?: FetchInit): Promise<
   const start = Date.now();
 
   try {
-    const res = await fetch(input as any, init as any);
+    const res = await fetch(input, init);
     const durationMs = Date.now() - start;
     logger.info({ ...logMeta, status: res.status, durationMs }, 'fetch response');
     return res;

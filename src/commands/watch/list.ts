@@ -61,10 +61,13 @@ export async function handleListSubcommand(
         if (details?.title && typeof details.title === 'string' && details.title.trim()) {
           pageTitle = details.title.trim();
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         const msg = error?.message ?? 'Failed to fetch watch details.';
         errorMessage = String(msg).slice(0, 200);
         logger.error(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           { err: error, uuid: record.watch_uuid },
           'Failed to fetch watch details for list',
         );
@@ -73,20 +76,21 @@ export async function handleListSubcommand(
       try {
         history = await base.cdGetWatchHistory(record.watch_uuid);
         priceSnapshot = extractPriceSnapshot(details, history);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         logger.warn(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           { err: error, uuid: record.watch_uuid },
           'Failed to fetch watch history for list',
         );
         if (!errorMessage) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           const msg = error?.message ?? 'Failed to fetch price history.';
           errorMessage = String(msg).slice(0, 200);
         }
       }
 
-      if (!pageTitle) {
-        pageTitle = inferTitleFromUrl(record.url);
-      }
+      pageTitle ??= inferTitleFromUrl(record.url);
 
       entries.push({
         index: i + 1,
@@ -122,8 +126,11 @@ export async function handleListSubcommand(
       { userId: interaction.user.id, count: rows.length, mode },
       '/watch list completed',
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     logger.error({ err: error, userId: interaction.user.id }, 'Failed to list watches');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     await interaction.editReply(`❌ Failed to list watches: ${error?.message ?? 'Unknown error'}`);
   }
 }

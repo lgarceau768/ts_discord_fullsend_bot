@@ -1,5 +1,6 @@
-import type { Client } from 'discord.js';
-import { EmbedBuilder } from 'discord.js';
+/* eslint-disable no-console */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { EmbedBuilder, type Client } from 'discord.js';
 import pg from 'pg';
 
 import { loggedFetch } from '../utils/loggedFetch.js';
@@ -29,7 +30,7 @@ interface PlantGet {
   state?: string | null;
 }
 
-const TZ = process.env.REMINDER_TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const TZ = (process.env.REMINDER_TZ ?? Intl.DateTimeFormat().resolvedOptions().timeZone) || 'UTC';
 
 const pool = new pg.Pool({
   host: process.env.PGHOST,
@@ -37,7 +38,7 @@ const pool = new pg.Pool({
   database: process.env.PGDATABASE,
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
-  ssl: /^\s*(true|1|yes|on)\s*$/i.test(process.env.PGSSL || '')
+  ssl: /^\s*(true|1|yes|on)\s*$/i.test(process.env.PGSSL ?? '')
     ? { rejectUnauthorized: false }
     : undefined,
 });
@@ -76,11 +77,15 @@ async function plantApiGet(id: number, userId: string): Promise<PlantGet> {
     headers,
     body: JSON.stringify({ action: 'get', id, userId }),
   });
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const json = await res.json().catch(() => ({}));
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if (!res.ok || json?.ok === false) {
-    throw new Error(json?.error || `n8n get failed: ${res.status}`);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+    throw new Error(json?.error ?? `n8n get failed: ${res.status}`);
   }
-  return (json.data || json) as PlantGet;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  return (json.data ?? json) as PlantGet;
 }
 
 // Decide if plant is due now. If plant.next_water_due_at exists: due if <= now.
@@ -184,7 +189,7 @@ async function processOneHour(client: Client) {
 
   for (const r of reminders) {
     // If a specific HH:mm is set, only run at that minute; if null, treat as “any top of hour”
-    const dueThisMinute = (r.time && r.time.trim() === hhmm) || (!r.time && hhmm.endsWith(':00')); // run at top of hour if no time configured
+    const dueThisMinute = (r.time && r.time.trim() === hhmm) ?? (!r.time && hhmm.endsWith(':00')); // run at top of hour if no time configured
 
     if (!dueThisMinute) continue;
 
@@ -196,8 +201,10 @@ async function processOneHour(client: Client) {
     let plant: PlantGet;
     try {
       plant = await plantApiGet(r.plant_id, r.user_id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
-      console.warn(`[plant-reminders] get plant ${r.plant_id} failed:`, e?.message || e);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      console.warn(`[plant-reminders] get plant ${r.plant_id} failed:`, e?.message ?? e);
       continue;
     }
 
@@ -206,8 +213,10 @@ async function processOneHour(client: Client) {
         await sendReminder(client, r, plant);
         notifiedToday.add(key);
         console.log(`[plant-reminders] sent reminder for plant ${r.plant_id} at ${hhmm}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
-        console.warn(`[plant-reminders] send failed for plant ${r.plant_id}:`, e?.message || e);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        console.warn(`[plant-reminders] send failed for plant ${r.plant_id}:`, e?.message ?? e);
       }
     }
   }
@@ -224,7 +233,8 @@ export function initPlantReminderJob(client: Client) {
   // Run immediately on boot (so you don't wait an hour)
   console.log(`[Plant Reminder Job]`);
   processOneHour(client).catch((e) =>
-    console.warn('[plant-reminders] initial run error:', e?.message || e),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    console.warn('[plant-reminders] initial run error:', e?.message ?? e),
   );
 
   // Schedule: align to top of next hour, then run every hour
@@ -232,12 +242,14 @@ export function initPlantReminderJob(client: Client) {
   const msToNextHour = 60 * 60 * 1000 - (now % (60 * 60 * 1000));
   setTimeout(() => {
     processOneHour(client).catch((e) =>
-      console.warn('[plant-reminders] scheduled run error:', e?.message || e),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      console.warn('[plant-reminders] scheduled run error:', e?.message ?? e),
     );
     setInterval(
       () => {
         processOneHour(client).catch((e) =>
-          console.warn('[plant-reminders] hourly run error:', e?.message || e),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          console.warn('[plant-reminders] hourly run error:', e?.message ?? e),
         );
       },
       60 * 60 * 1000,

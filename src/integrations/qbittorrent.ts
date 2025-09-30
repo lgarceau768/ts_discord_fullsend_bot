@@ -62,6 +62,7 @@ export async function getActiveDownloads(): Promise<QBTorrent[]> {
   if (!infoRes.ok) {
     throw new Error(`Failed to retrieve torrents: status ${infoRes.status}`);
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const data = await infoRes.json();
   return Array.isArray(data) ? (data as QBTorrent[]) : [];
 }

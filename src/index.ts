@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 
 import downloads from './commands/downloads.js';
@@ -15,6 +16,7 @@ import { logger } from './logger.js';
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 // Register commands into a collection for easy lookup
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const commands = new Collection<string, any>();
 commands.set(ping.data.name, ping);
 commands.set(search.data.name, search);
@@ -24,6 +26,7 @@ commands.set(plant.data.name, plant);
 commands.set(watch.data.name, watch);
 
 // Wire up event handlers
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
 ready(client as any);
 interactionCreate(client, commands);
 

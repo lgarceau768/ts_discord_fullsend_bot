@@ -40,14 +40,19 @@ export async function handleRemoveSubcommand(
 
     try {
       await base.cdDeleteWatch(uuid);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       logger.warn({ err: error, uuid }, 'ChangeDetection delete failed during /watch remove');
     }
 
     await interaction.editReply(`🗑️ Removed watch \`${uuid}\`.`);
     logger.info({ userId: interaction.user.id, uuid }, 'Watch removed for user');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     logger.error({ err: error, userId: interaction.user.id, uuid }, 'Failed to remove watch');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     await interaction.editReply(`❌ Failed to remove watch: ${error?.message ?? 'Unknown error'}`);
   }
 }

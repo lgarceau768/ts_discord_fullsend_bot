@@ -1,5 +1,8 @@
-import type { SlashCommandSubcommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { EmbedBuilder } from 'discord.js';
+import {
+  EmbedBuilder,
+  type SlashCommandSubcommandBuilder,
+  type ChatInputCommandInteraction,
+} from 'discord.js';
 
 import { logger } from '../../logger.js';
 import type { WatchBase } from '../../types/watch.js';
@@ -39,7 +42,7 @@ interface WatchCreatedEmbedInput {
 
 function buildWatchCreatedEmbed(input: WatchCreatedEmbedInput): EmbedBuilder {
   const { base, url, uuid, tags, pageTitle } = input;
-  const title = pageTitle?.trim() || url;
+  const title = pageTitle?.trim() ?? url;
   const embed = new EmbedBuilder()
     .setTitle(title)
     .setAuthor({ name: 'Watch Created', iconURL: base.icons.watch })
@@ -64,7 +67,7 @@ export async function handleAddSubcommand(
 ): Promise<void> {
   const url = interaction.options.getString('url', true).trim();
   const customTitle = interaction.options.getString('title')?.trim();
-  const store = interaction.options.getString('store')?.trim().toLowerCase() || null;
+  const store = interaction.options.getString('store')?.trim().toLowerCase() ?? null;
   const extraTags = base.parseTags(interaction.options.getString('tags'));
   const userId = interaction.user.id;
   const requesterTag = `${interaction.user.username}#${interaction.user.discriminator ?? '0000'}`;
@@ -75,7 +78,7 @@ export async function handleAddSubcommand(
 
   try {
     const tags = base.mkOwnerTags(userId, requesterTag, store, extraTags);
-    const derivedTitle = customTitle || inferTitleFromUrl(url);
+    const derivedTitle = customTitle ?? inferTitleFromUrl(url);
     const title = `[PRICE WATCH] ${derivedTitle}`;
 
     const templateContext = {
@@ -119,8 +122,11 @@ export async function handleAddSubcommand(
       content: `🎉 Watch created in ChangeDetection and linked to your account.`,
       embeds: [embed],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     logger.error({ err: error }, 'Failed to process /watch add');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     await interaction.editReply(`❌ Failed to create watch: ${error?.message ?? 'Unknown error'}`);
   }
 }

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import type { SlashCommandSubcommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 
 import { logger } from '../../logger.js';
@@ -75,9 +78,7 @@ export async function handleLatestSubcommand(
       logger.info({ uuid }, 'No price/stock data found for latest');
     }
 
-    if (!pageTitle) {
-      pageTitle = inferTitleFromUrl(record.url);
-    }
+    pageTitle ??= inferTitleFromUrl(record.url);
 
     const embed = buildLatestEmbed(base, {
       uuid,

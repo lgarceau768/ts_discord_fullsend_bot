@@ -7,7 +7,7 @@ import type {
 } from '../types/changeDetection.js';
 
 const CD_URL = process.env.CHANGEDETECTION_URL?.replace(/\/$/, '');
-const CD_KEY = process.env.CHANGEDETECTION_API_KEY || '';
+const CD_KEY = process.env.CHANGEDETECTION_API_KEY ?? '';
 
 if (!CD_URL) {
   logger.warn('CHANGEDETECTION_URL is not configured; change detection service will error on use');
@@ -28,7 +28,7 @@ export async function listTags(): Promise<ChangeDetectionTagListResponse> {
   const base = requireUrl();
   const res = await fetch(`${base}/api/v1/tags`, { headers: headers() });
   if (!res.ok) throw new Error(`List tags failed: ${res.status} ${res.statusText}`);
-  return res.json();
+  return res.json() as Promise<ChangeDetectionTagListResponse>;
 }
 
 export async function createTag(title: string): Promise<string> {
@@ -38,9 +38,11 @@ export async function createTag(title: string): Promise<string> {
     headers: headers(),
     body: JSON.stringify({ title }),
   });
-  const json = await res.json().catch(() => ({}));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+  const json: any = await res.json().catch(() => ({}));
   if (!res.ok)
     throw new Error(`Create tag "${title}" failed: ${res.status} ${JSON.stringify(json)}`);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return json.uuid as string;
 }
 
@@ -60,6 +62,7 @@ interface CreateWatchOpts {
 
 export async function createWatch(opts: CreateWatchOpts): Promise<string> {
   const base = requireUrl();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const payload: any = {
     url: opts.url,
     title: opts.title ?? undefined,
@@ -85,6 +88,7 @@ export async function createWatch(opts: CreateWatchOpts): Promise<string> {
   const text = await res.text();
   let json: ChangeDetectionCreateResponse = {};
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     json = JSON.parse(text);
   } catch {
     /* ignore */
@@ -94,13 +98,14 @@ export async function createWatch(opts: CreateWatchOpts): Promise<string> {
     const message =
       json && Object.keys(json).length ? JSON.stringify(json) : text || res.statusText;
     logger.error(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       { status: res.status, body: text, url: opts.url, payload },
       'ChangeDetection create failed',
     );
     throw new Error(`ChangeDetection create failed: ${message}`);
   }
 
-  const uuid = json.uuid || json.watch_uuid || json.id;
+  const uuid = json.uuid ?? json.watch_uuid ?? json.id;
   if (!uuid) throw new Error('ChangeDetection did not return a watch UUID');
 
   try {
@@ -182,6 +187,7 @@ export async function getWatchDetails(uuid: string): Promise<ChangeDetectionWatc
   const text = await res.text();
   let json: ChangeDetectionWatchDetails = {};
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     json = JSON.parse(text);
   } catch {
     /* ignore */
@@ -220,7 +226,9 @@ export async function getWatchHistory(uuid: string): Promise<ChangeDetectionHist
     throw new Error(`Failed to fetch watch history: ${text || res.statusText}`);
   }
   if (Array.isArray(json)) return json as ChangeDetectionHistoryEntry[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   if (json && typeof json === 'object' && Array.isArray((json as any).history)) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     return (json as any).history as ChangeDetectionHistoryEntry[];
   }
   return [];

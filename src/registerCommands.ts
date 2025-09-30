@@ -1,5 +1,6 @@
-import type { SlashCommandBuilder } from 'discord.js';
-import { REST, Routes } from 'discord.js';
+/* eslint-disable no-console */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+import { REST, Routes, type SlashCommandBuilder } from 'discord.js';
 
 import downloads from './commands/downloads.js';
 import ping from './commands/ping.js';

@@ -46,7 +46,7 @@ export async function handleUpdateSubcommand(
 ): Promise<void> {
   const uuid = interaction.options.getString('uuid', true).trim();
   const newTitle = interaction.options.getString('title')?.trim();
-  const store = interaction.options.getString('store')?.trim().toLowerCase() || null;
+  const store = interaction.options.getString('store')?.trim().toLowerCase() ?? null;
   const extraTagsInput = interaction.options.getString('tags');
   const intervalMinutes = interaction.options.getInteger('interval_minutes') ?? undefined;
   const trackPrice = interaction.options.getBoolean('track_price') ?? undefined;
@@ -94,7 +94,7 @@ export async function handleUpdateSubcommand(
     const details = await base.cdGetWatchDetails(uuid).catch(() => undefined);
     const history = await base.cdGetWatchHistory(uuid).catch(() => []);
     const priceSnapshot = extractPriceSnapshot(details, history ?? []);
-    const pageTitle = newTitle || details?.title?.trim() || inferTitleFromUrl(record.url);
+    const pageTitle = newTitle ?? details?.title?.trim() ?? inferTitleFromUrl(record.url);
 
     const embed = buildLatestEmbed(base, {
       uuid,
@@ -109,8 +109,11 @@ export async function handleUpdateSubcommand(
       content: '✅ Watch updated.',
       embeds: [embed],
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     logger.error({ err: error, userId: interaction.user.id, uuid }, 'Failed to update watch');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     await interaction.editReply(`❌ Failed to update watch: ${error?.message ?? 'Unknown error'}`);
   }
 }

@@ -49,8 +49,8 @@ import {
 } from './update.js';
 
 const CD_URL = process.env.CHANGEDETECTION_URL?.replace(/\/$/, '');
-const CD_NOTIFY_URL = process.env.CHANGEDETECTION_NOTIFICATION_URL || '';
-const CD_TEMPLATE_PATH = process.env.CHANGEDETECTION_NOTIFICATION_TEMPLATE_PATH || '';
+const CD_NOTIFY_URL = process.env.CHANGEDETECTION_NOTIFICATION_URL ?? '';
+const CD_TEMPLATE_PATH = process.env.CHANGEDETECTION_NOTIFICATION_TEMPLATE_PATH ?? '';
 
 const WATCH_COLOR_PRIMARY = 0x6366f1;
 const WATCH_COLOR_SUCCESS = 0x22c55e;
@@ -66,7 +66,7 @@ const pool = new pg.Pool({
   database: process.env.PGDATABASE,
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
-  ssl: /^\s*(true|1|yes|on)\s*$/i.test(process.env.PGSSL || '')
+  ssl: /^\s*(true|1|yes|on)\s*$/i.test(process.env.PGSSL ?? '')
     ? { rejectUnauthorized: false }
     : undefined,
 });

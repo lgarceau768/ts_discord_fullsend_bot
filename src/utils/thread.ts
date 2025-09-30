@@ -5,8 +5,8 @@ export async function ensureChildThread(
   parent: Message<true>,
   name = 'trakt-requests',
 ): Promise<ThreadChannel> {
-  if ((parent as any).hasThread && parent.thread) return parent.thread; // already there
-  // 1440 = 24h auto-archive. Adjust for your server’s thread settings
+  if (parent.hasThread && parent.thread) return parent.thread;
+
   return await parent.startThread({
     name: name.slice(0, 100),
     autoArchiveDuration: 1440,
