@@ -7,7 +7,7 @@ import interactionCreate from "./events/interactionCreate.js";
 import ready from "./events/ready.js";
 import request from "./commands/request";
 import plant from './commands/plant.js'
-import watch from './commands/watch.js'
+import {command as watch} from './commands/watch/index.js'
 import {initPlantReminderJob} from "./jobs/plantReminder";
 import { logger } from "./logger.js";
 

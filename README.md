@@ -1,4 +1,6 @@
 # ts_discord_fullsend_bot
+![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)
+![CodeQL](https://github.com/<OWNER>/<REPO>/actions/workflows/codeql.yml/badge.svg)
 
 This Discord bot template provides a solid starting point for building out
 features on top of the Discord.js library. It comes with TypeScript,

@@ -5,7 +5,7 @@ import search from "./commands/search.js";
 import downloads from "./commands/downloads.js";
 import request from "./commands/request";
 import plant from './commands/plant.js';
-import watch from './commands/watch.js';
+import {command as watch} from './commands/watch/index.js'
 
 // Determine registration scope
 const isGlobal = process.argv.includes("--global");
