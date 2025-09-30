@@ -21,7 +21,9 @@ function parseSeasons(
   return Array.from(new Set(parts)).sort((a, b) => a - b);
 }
 
-export default {
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+const command: SlashCommand = {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-expect-error
   data: new SlashCommandBuilder()
@@ -107,3 +109,5 @@ export default {
     }
   },
 } satisfies SlashCommand;
+
+export default command;

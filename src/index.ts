@@ -6,7 +6,7 @@ import ping from './commands/ping.js';
 import plant from './commands/plant.js';
 import request from './commands/request';
 import search from './commands/search.js';
-import { command as watch } from './commands/watch/index.js';
+import watch from './commands/watch/index.js';
 import { env } from './config.js';
 import interactionCreate from './events/interactionCreate.js';
 import ready from './events/ready.js';

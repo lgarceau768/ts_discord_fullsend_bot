@@ -46,7 +46,8 @@ function itemToEmbed(item: SearchItem, index: number): EmbedBuilder {
   return embed;
 }
 
-export default {
+// @ts-expect-error
+const command: SlashCommand = {
   // @ts-expect-error
   data: new SlashCommandBuilder()
     .setName('search')
@@ -137,3 +138,5 @@ export default {
     }
   },
 } satisfies SlashCommand;
+
+export default command;

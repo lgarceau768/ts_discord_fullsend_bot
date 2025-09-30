@@ -1,13 +1,12 @@
 /* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { REST, Routes, type SlashCommandBuilder } from 'discord.js';
+import { REST, Routes } from 'discord.js';
 
 import downloads from './commands/downloads.js';
 import ping from './commands/ping.js';
 import plant from './commands/plant.js';
 import request from './commands/request';
 import search from './commands/search.js';
-import { command as watch } from './commands/watch/index.js';
+import watch from './commands/watch/index.js';
 import { env } from './config.js';
 
 // Determine registration scope
@@ -19,21 +18,11 @@ if (!isGlobal && !isGuild) {
 }
 
 // Collect commands to register. Add new commands here.
-const commands: SlashCommandBuilder[] = [
-  // @ts-expect-error
-  ping.data,
-  // @ts-expect-error
-  search.data,
-  // @ts-expect-error
-  downloads.data,
-  // @ts-expect-error
-  request.data,
-  // @ts-expect-error
-  plant.data,
-  // @ts-expect-error
-  watch.data,
-];
-const body = commands.map((c) => c.toJSON());
+const commands = [ping, search, downloads, request, plant, watch];
+const body = commands.map((command) => {
+  const data = command.data as { toJSON(): unknown };
+  return data.toJSON();
+});
 
 const rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
 
