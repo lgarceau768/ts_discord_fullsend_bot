@@ -8,6 +8,7 @@ import {
 
 import type { SlashCommand } from './commands/_types.js';
 import downloads from './commands/downloads.js';
+import penny from './commands/penny/index.js';
 import ping from './commands/ping.js';
 import plant from './commands/plant.js';
 import request from './commands/request';
@@ -25,7 +26,7 @@ if (!isGlobal && !isGuild) {
 }
 
 // Collect commands to register. Add new commands here.
-const commands: SlashCommand[] = [ping, search, downloads, request, plant, watch];
+const commands: SlashCommand[] = [ping, search, downloads, request, plant, penny, watch];
 
 const hasToJSON = (
   data: SlashCommand['data'],
