@@ -1,21 +1,11 @@
+import { SlashCommandSubcommandBuilder } from 'discord.js';
 import { describe, expect, it } from 'vitest';
 
-import {
-  configureAddSubcommand,
-} from '../../src/commands/watch/add.js';
-import {
-  configureListSubcommand,
-} from '../../src/commands/watch/list.js';
-import {
-  configureRemoveSubcommand,
-} from '../../src/commands/watch/remove.js';
-import {
-  configureLatestSubcommand,
-} from '../../src/commands/watch/latest.js';
-import {
-  configureUpdateSubcommand,
-} from '../../src/commands/watch/update.js';
-import { SlashCommandSubcommandBuilder } from 'discord.js';
+import { configureAddSubcommand } from '../../src/commands/watch/add.js';
+import { configureLatestSubcommand } from '../../src/commands/watch/latest.js';
+import { configureListSubcommand } from '../../src/commands/watch/list.js';
+import { configureRemoveSubcommand } from '../../src/commands/watch/remove.js';
+import { configureUpdateSubcommand } from '../../src/commands/watch/update.js';
 
 describe('watch subcommand configuration', () => {
   const toJson = (builder: SlashCommandSubcommandBuilder) => builder.toJSON();

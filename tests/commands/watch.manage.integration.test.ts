@@ -90,7 +90,9 @@ describe('watch command subhandlers', () => {
 
     await handleListSubcommand(base, interaction);
 
-    expect(editReply).toHaveBeenCalledWith('🌱 You have no watches yet. Add one with `/watch add`.');
+    expect(editReply).toHaveBeenCalledWith(
+      '🌱 You have no watches yet. Add one with `/watch add`.',
+    );
   });
 
   it('notes when additional watches are truncated', async () => {
@@ -313,7 +315,9 @@ describe('watch command subhandlers', () => {
 
     await handleLatestSubcommand(base, interaction);
 
-    const payload = editReply.mock.calls[0][0] as { embeds: { toJSON: () => { description?: string } }[] };
+    const payload = editReply.mock.calls[0][0] as {
+      embeds: { toJSON: () => { description?: string } }[];
+    };
     const description = payload.embeds[0]?.toJSON().description;
     expect(description).toContain('⚠️');
   });

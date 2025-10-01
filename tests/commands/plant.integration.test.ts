@@ -232,7 +232,9 @@ describe('plant command', () => {
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith(
-      expect.objectContaining({ content: expect.stringContaining('✅ Updated **Updated Monstera**') }),
+      expect.objectContaining({
+        content: expect.stringContaining('✅ Updated **Updated Monstera**'),
+      }),
     );
   });
 
@@ -271,7 +273,9 @@ describe('plant command', () => {
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith(
-      expect.objectContaining({ content: expect.stringContaining('💧 Marked watered: **ZZ Plant**') }),
+      expect.objectContaining({
+        content: expect.stringContaining('💧 Marked watered: **ZZ Plant**'),
+      }),
     );
   });
 
@@ -314,7 +318,9 @@ describe('plant command', () => {
   });
 
   it('uploads a plant photo via URL', async () => {
-    plantResponses.set('photo.add', () => okResponse({ imageUrl: 'https://cdn.example/plant.jpg' }));
+    plantResponses.set('photo.add', () =>
+      okResponse({ imageUrl: 'https://cdn.example/plant.jpg' }),
+    );
     plantResponses.set('update', () => okResponse({}));
 
     const { interaction, editReply } = createInteractionMock({

@@ -213,15 +213,12 @@ describe('request command', () => {
       createRequestMock.mockClear();
     };
 
-    await runCase('all', [1, 2, 3], [
-      { seasonNumber: 1 },
-      { seasonNumber: 2 },
-      { seasonNumber: 3 },
-    ]);
-    await runCase('first', [1], [
-      { seasonNumber: 1 },
-      { seasonNumber: 0 },
-    ]);
+    await runCase(
+      'all',
+      [1, 2, 3],
+      [{ seasonNumber: 1 }, { seasonNumber: 2 }, { seasonNumber: 3 }],
+    );
+    await runCase('first', [1], [{ seasonNumber: 1 }, { seasonNumber: 0 }]);
     await runCase('latest', [1], null);
   });
 });
