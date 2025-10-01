@@ -72,7 +72,10 @@ export async function enqueueSeleniumJob(
       message: json.message,
     };
   } catch (error) {
-    logger.error({ err: error, request }, 'Failed to enqueue selenium job; returning mock response');
+    logger.error(
+      { err: error, request },
+      'Failed to enqueue selenium job; returning mock response',
+    );
     return notConfiguredResponse(request.kind);
   }
 }
@@ -106,8 +109,8 @@ export async function fetchSeleniumJobResult(jobId: string): Promise<SeleniumJob
     }
 
     const json = (await res.json().catch(() => ({}))) as Partial<SeleniumJobResult>;
-    if (!json.status) json.status = 'completed';
-    if (!json.completedAt) json.completedAt = new Date().toISOString();
+    json.status ??= 'completed';
+    json.completedAt ??= new Date().toISOString();
     return json as SeleniumJobResult;
   } catch (error) {
     logger.error({ jobId, err: error }, 'Error while fetching selenium job result');
