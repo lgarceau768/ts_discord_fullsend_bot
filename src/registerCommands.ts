@@ -52,8 +52,8 @@ async function main() {
     logger.info(`✅ Registered ${commands.length} command(s) to guild ${env.DISCORD_GUILD_ID}`);
   } else if (isGlobal) {
     const route = Routes.applicationCommands(env.DISCORD_CLIENT_ID);
-    await rest.put(route, { body });
-    logger.info(`🌍 Registered ${commands.length} global command(s)`);
+    const response = (await rest.put(route, { body })) as unknown[];
+    logger.info(`🌍 Registered ${response.length} global command(s)`);
     logger.info('Note: global commands can take up to an hour to propagate.');
   }
 }
