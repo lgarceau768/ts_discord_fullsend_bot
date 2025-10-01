@@ -4,7 +4,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)
 ![Discord.js](https://img.shields.io/badge/discord.js-14-5865f2?logo=discord&logoColor=white)
 [![CI](https://github.com/lgarceau768/ts_discord_fullsend_bot/actions/workflows/ci.yml/badge.svg)](https://github.com/lgarceau768/ts_discord_fullsend_bot/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-88%25-brightgreen)](#)
+[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](#)
 
 > An open-source, TypeScript-first Discord bot that keeps your media requests, download pipeline, price watches, and even houseplants on track. 🌱🎬
 
