@@ -98,6 +98,17 @@ docker-compose up --build
 | `npm run register:dev` / `npm run register:global` | Register slash commands on your guild or globally.      |
 | `npm run build`                                    | Compile TypeScript to `dist/`.                          |
 
+## Tooling
+
+We rely on a consistent set of tools to keep the codebase healthy:
+
+- **TypeScript** for static typing across commands, services, and integrations.
+- **ESLint** (flat config) with **Prettier** for linting and formatting; enforced via `lint-staged` and **Husky** pre-commit hooks.
+- **Vitest** for integration and utility tests, with coverage reporting via `@vitest/coverage-v8`.
+- **tsx** for fast TypeScript execution in local scripts (e.g., command registration and dev server).
+- **dotenv** plus **zod** to load and validate environment configuration.
+- **pg** for Postgres connectivity, wrapped in `services/database.service.ts`.
+
 ## Project Structure
 
 ```
