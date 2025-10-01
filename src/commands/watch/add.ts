@@ -5,7 +5,7 @@ import {
 } from 'discord.js';
 
 import { logger } from '../../logger.js';
-import type { WatchBase } from '../../types/watch.js';
+import type { WatchBase, WatchCreatedEmbedInput } from '../../types/watch.js';
 import { getErrorMessage } from '../../utils/errors.js';
 import { inferTitleFromUrl } from '../../utils/urlTitle.js';
 
@@ -32,15 +32,6 @@ export function configureAddSubcommand(
         .setDescription('Extra tags (comma or space separated, e.g., gpu,4090,deal)'),
     );
 }
-
-interface WatchCreatedEmbedInput {
-  base: WatchBase;
-  url: string;
-  uuid: string;
-  tags: string[];
-  pageTitle?: string | null;
-}
-
 function buildWatchCreatedEmbed(input: WatchCreatedEmbedInput): EmbedBuilder {
   const { base, url, uuid, tags, pageTitle } = input;
   const title = pageTitle?.trim() ?? url;

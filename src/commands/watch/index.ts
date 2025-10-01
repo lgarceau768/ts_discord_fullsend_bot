@@ -16,7 +16,6 @@ import {
   getWatchHistory,
   listTags,
   updateWatch,
-  type UpdateWatchOpts,
 } from '../../services/changeDetectionService.js';
 import { getSnapshotIconUrl, getSiteIconUrl, getWatchIconUrl } from '../../services/iconService.js';
 import {
@@ -26,6 +25,7 @@ import {
   listWatchRecords,
   updateWatchRecord,
 } from '../../services/watchDbService.js';
+import type { UpdateWatchOptions } from '../../types/changeDetectionService.js';
 import type { CreateWatchInput, UpdateWatchInput, WatchBase } from '../../types/watch.js';
 import type { SlashCommand } from '../_types.js';
 
@@ -138,7 +138,7 @@ const cdGetWatchDetails = getWatchDetails;
 const cdGetWatchHistory = getWatchHistory;
 
 async function cdUpdateWatch(opts: UpdateWatchInput): Promise<void> {
-  const payload: UpdateWatchOpts = {};
+  const payload: UpdateWatchOptions = {};
   if (opts.title !== undefined) payload.title = opts.title;
   if (opts.trackLdjsonPriceData !== undefined)
     payload.trackLdjsonPriceData = opts.trackLdjsonPriceData;
