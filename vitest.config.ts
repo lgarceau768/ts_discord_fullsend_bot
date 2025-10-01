@@ -9,6 +9,21 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
+      exclude: [
+        'dist/**',
+        'coverage/**',
+        'tests/**',
+        'eslint.config.ts',
+        'vitest.config.ts',
+        'src/index.ts',
+        'src/registerCommands.ts',
+        'src/events/**',
+        'src/jobs/**',
+        'src/services/**',
+        'src/types/**',
+        'src/state/**',
+        'src/utils/logger.ts',
+      ],
     },
   },
 });

@@ -149,4 +149,79 @@ describe('request command', () => {
 
     expect(editReply).toHaveBeenCalledWith('❌ Failed to request: Jellyseerr API down');
   });
+
+  it('guards against out-of-range indices', async () => {
+    const items = Array.from({ length: 2 }, (_, i) => createSearchItem({ title: `Item ${i + 1}` }));
+    getForThreadMock.mockReturnValue({ items });
+
+    const channel = { id: 'thread-2', isThread: () => true } as const;
+    const { interaction, editReply } = createInteractionMock({
+      integerOptions: { index: 5 },
+      channelId: 'thread-2',
+      channel: channel as unknown as { id: string; isThread: () => boolean },
+    });
+
+    const module = await import('../../src/commands/request.js');
+    await module.default.execute(interaction);
+
+    expect(editReply).toHaveBeenCalledWith('Index 5 is out of range. Choose 1..2.');
+    expect(createRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses to request items missing TMDB ids', async () => {
+    const item = createSearchItem({ title: 'Mystery Item', ids: { tmdb: undefined } });
+    getForThreadMock.mockReturnValue({ items: [item] });
+
+    const channel = { id: 'thread-8', isThread: () => true } as const;
+    const { interaction, editReply } = createInteractionMock({
+      integerOptions: { index: 1 },
+      channelId: 'thread-8',
+      channel: channel as unknown as { id: string; isThread: () => boolean },
+    });
+
+    const module = await import('../../src/commands/request.js');
+    await module.default.execute(interaction);
+
+    expect(editReply).toHaveBeenCalledWith(
+      'This item is missing a TMDB id and can’t be requested.',
+    );
+    expect(createRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('honours explicit season modifiers (all, first, latest)', async () => {
+    const item = createSearchItem({ type: 'show', title: 'Demo Show', ids: { tmdb: 555 } });
+    getForThreadMock.mockReturnValue({ items: [item] });
+
+    const channel = { id: 'thread-11', isThread: () => true } as const;
+
+    const runCase = async (
+      seasons: string,
+      expected: number[],
+      returnedSeasons: Array<{ seasonNumber: number }> | null,
+    ) => {
+      getDetailsMock.mockResolvedValue({ seasons: returnedSeasons });
+      const { interaction } = createInteractionMock({
+        integerOptions: { index: 1 },
+        stringOptions: { seasons },
+        channelId: 'thread-11',
+        channel: channel as unknown as { id: string; isThread: () => boolean },
+      });
+
+      const module = await import('../../src/commands/request.js');
+      await module.default.execute(interaction);
+      expect(createRequestMock).toHaveBeenLastCalledWith('tv', 555, expected);
+      createRequestMock.mockClear();
+    };
+
+    await runCase('all', [1, 2, 3], [
+      { seasonNumber: 1 },
+      { seasonNumber: 2 },
+      { seasonNumber: 3 },
+    ]);
+    await runCase('first', [1], [
+      { seasonNumber: 1 },
+      { seasonNumber: 0 },
+    ]);
+    await runCase('latest', [1], null);
+  });
 });

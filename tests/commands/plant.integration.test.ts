@@ -145,6 +145,17 @@ describe('plant command', () => {
     expect(replyCall).toMatchObject({ content: expect.stringContaining('You have **2** plants') });
   });
 
+  it('informs user when no plants exist', async () => {
+    plantResponses.set('list', () => okResponse([]));
+
+    const { interaction, editReply } = createInteractionMock({ subcommand: 'list' });
+
+    const module = await import('../../src/commands/plant.js');
+    await module.default.execute(interaction);
+
+    expect(editReply).toHaveBeenCalledWith('No plants found yet. Add one with `/plant add`.');
+  });
+
   it('updates watering reminders via the API', async () => {
     plantResponses.set('reminder.set', () =>
       okResponse({ id: 9, name: 'Pothos', next_water_due_at: '2024-03-02T00:00:00Z' }),
@@ -178,5 +189,155 @@ describe('plant command', () => {
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith('❌ Plant not found');
+  });
+
+  it('retrieves a single plant by id', async () => {
+    plantResponses.set('get', () =>
+      okResponse({
+        id: 21,
+        name: 'Fiddle Leaf Fig',
+        notes: 'Rotate weekly for even growth.',
+      }),
+    );
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'get',
+      integerOptions: { id: 21 },
+    });
+
+    const module = await import('../../src/commands/plant.js');
+    await module.default.execute(interaction);
+
+    const payload = editReply.mock.calls[0][0] as { embeds: unknown[] };
+    expect(Array.isArray(payload.embeds)).toBe(true);
+  });
+
+  it('updates a plant record', async () => {
+    plantResponses.set('update', () =>
+      okResponse({
+        id: 5,
+        name: 'Updated Monstera',
+        next_water_due_at: '2024-05-01T00:00:00Z',
+        notes: 'Adjust watering based on soil moisture.',
+      }),
+    );
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'update',
+      integerOptions: { id: 5, water_interval_days: 10 },
+      stringOptions: { name: 'Updated Monstera', light: 'bright' },
+    });
+
+    const module = await import('../../src/commands/plant.js');
+    await module.default.execute(interaction);
+
+    expect(editReply).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('✅ Updated **Updated Monstera**') }),
+    );
+  });
+
+  it('deletes a plant when requested', async () => {
+    plantResponses.set('delete', () => okResponse({ id: 8, name: 'Basil' }));
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'delete',
+      integerOptions: { id: 8 },
+    });
+
+    const module = await import('../../src/commands/plant.js');
+    await module.default.execute(interaction);
+
+    expect(editReply).toHaveBeenCalledWith('🗑️ Deleted **Basil** (ID 8).');
+  });
+
+  it('marks a plant as watered', async () => {
+    plantResponses.set('water', () =>
+      okResponse({
+        id: 12,
+        name: 'ZZ Plant',
+        next_water_due_at: '2024-04-10T00:00:00Z',
+        notes: 'Soil still slightly damp.',
+      }),
+    );
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'water',
+      integerOptions: { id: 12 },
+      numberOptions: { amount_l: 0.5 },
+      stringOptions: { note: 'Half a liter' },
+    });
+
+    const module = await import('../../src/commands/plant.js');
+    await module.default.execute(interaction);
+
+    expect(editReply).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('💧 Marked watered: **ZZ Plant**') }),
+    );
+  });
+
+  it('provides care guidance via embed', async () => {
+    plantResponses.set('care', () =>
+      okResponse({
+        id: 3,
+        name: 'Snake Plant',
+        answer: 'Water lightly every two weeks.',
+        question: 'How often should I water? ',
+        image_url: 'https://img.example/snake.jpg',
+        location: 'Bedroom',
+      }),
+    );
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'care',
+      integerOptions: { id: 3 },
+      stringOptions: { question: 'How often should I water?' },
+    });
+
+    const module = await import('../../src/commands/plant.js');
+    await module.default.execute(interaction);
+
+    const payload = editReply.mock.calls[0][0] as { embeds: unknown[] };
+    expect(Array.isArray(payload.embeds)).toBe(true);
+    expect(payload.embeds).toHaveLength(1);
+  });
+
+  it('requires an image or url for the photo subcommand', async () => {
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'photo',
+      integerOptions: { id: 4 },
+    });
+
+    const module = await import('../../src/commands/plant.js');
+    await module.default.execute(interaction);
+
+    expect(editReply).toHaveBeenCalledWith('Please attach an image or provide `image_url`.');
+  });
+
+  it('uploads a plant photo via URL', async () => {
+    plantResponses.set('photo.add', () => okResponse({ imageUrl: 'https://cdn.example/plant.jpg' }));
+    plantResponses.set('update', () => okResponse({}));
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'photo',
+      integerOptions: { id: 6 },
+      stringOptions: { image_url: 'https://cdn.discordapp.com/plant.jpg', caption: 'New growth' },
+    });
+
+    const module = await import('../../src/commands/plant.js');
+    await module.default.execute(interaction);
+
+    expect(editReply).toHaveBeenCalledWith(
+      '📷 Photo added. Stored at: https://cdn.example/plant.jpg',
+    );
+  });
+
+  it('handles unknown subcommands defensively', async () => {
+    const { interaction, editReply, deferReply } = createInteractionMock({ subcommand: 'unknown' });
+
+    const module = await import('../../src/commands/plant.js');
+    await module.default.execute(interaction);
+
+    expect(deferReply).toHaveBeenCalledOnce();
+    expect(editReply).toHaveBeenCalledWith('Unknown subcommand.');
   });
 });
