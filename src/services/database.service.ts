@@ -1,4 +1,4 @@
-import pg from 'pg';
+import pg, { type QueryResultRow } from 'pg';
 
 import { logger } from '../logger.js';
 
@@ -17,7 +17,10 @@ pool.on('error', (error) => {
   logger.error({ err: error }, 'Unexpected database error');
 });
 
-export async function query<T>(text: string, params?: unknown[]): Promise<pg.QueryResult<T>> {
+export async function query<T extends QueryResultRow>(
+  text: string,
+  params?: unknown[],
+): Promise<pg.QueryResult<T>> {
   return pool.query<T>(text, params as pg.QueryConfig['values']);
 }
 
