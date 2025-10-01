@@ -1,25 +1,17 @@
 // src/state/searchCache.ts
-import type { SearchItem } from '../integrations/n8n.js';
+import type { SearchCacheEntry } from '../types/searchCache.js';
 
-export interface CacheEntry {
-  items: SearchItem[];
-  createdAt: number;
-  query: string;
-  authorId: string;
-  parentMessageId: string;
-}
+const cacheByThread = new Map<string, SearchCacheEntry>();
+const cacheByChannel = new Map<string, SearchCacheEntry>(); // loose fallback
 
-const cacheByThread = new Map<string, CacheEntry>();
-const cacheByChannel = new Map<string, CacheEntry>(); // loose fallback
-
-export function setForThread(threadId: string, entry: CacheEntry) {
+export function setForThread(threadId: string, entry: SearchCacheEntry) {
   cacheByThread.set(threadId, entry);
 }
 export function getForThread(threadId: string) {
   return cacheByThread.get(threadId);
 }
 
-export function setForChannel(channelId: string, entry: CacheEntry) {
+export function setForChannel(channelId: string, entry: SearchCacheEntry) {
   cacheByChannel.set(channelId, entry);
 }
 export function getForChannel(channelId: string) {

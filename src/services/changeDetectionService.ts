@@ -5,6 +5,7 @@ import type {
   ChangeDetectionTagListResponse,
   ChangeDetectionWatchDetails,
 } from '../types/changeDetection.js';
+import type { CreateWatchOptions, UpdateWatchOptions } from '../types/changeDetectionService.js';
 
 const CD_URL = process.env.CHANGEDETECTION_URL?.replace(/\/$/, '');
 const CD_KEY = process.env.CHANGEDETECTION_API_KEY ?? '';
@@ -51,21 +52,7 @@ export async function createTag(title: string): Promise<string> {
   return uuidValue;
 }
 
-interface CreateWatchOpts {
-  url: string;
-  title?: string;
-  tagUUIDs: string[];
-  notificationUrl: string;
-  notificationBody: string;
-  notificationTitle: string;
-  notificationFormat?: 'Markdown' | 'Text' | 'HTML';
-  trackLdjsonPriceData?: boolean;
-  fetchBackend?: 'html_webdriver' | 'html_requests';
-  webdriverDelaySec?: number;
-  intervalMinutes?: number;
-}
-
-export async function createWatch(opts: CreateWatchOpts): Promise<string> {
+export async function createWatch(opts: CreateWatchOptions): Promise<string> {
   const base = requireUrl();
   const payload: Record<string, unknown> = {
     url: opts.url,
@@ -133,16 +120,7 @@ export async function createWatch(opts: CreateWatchOpts): Promise<string> {
   return uuid;
 }
 
-export interface UpdateWatchOpts {
-  title?: string;
-  tagUUIDs?: string[];
-  trackLdjsonPriceData?: boolean;
-  fetchBackend?: 'html_webdriver' | 'html_requests';
-  webdriverDelaySec?: number;
-  intervalMinutes?: number;
-}
-
-export async function updateWatch(uuid: string, opts: UpdateWatchOpts): Promise<void> {
+export async function updateWatch(uuid: string, opts: UpdateWatchOptions): Promise<void> {
   const base = requireUrl();
   const payload: Record<string, unknown> = {};
 

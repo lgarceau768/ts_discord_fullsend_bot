@@ -1,15 +1,8 @@
 import { logger } from '../logger.js';
+import type { FetchLogMeta } from '../types/loggedFetch.js';
 
 type FetchInput = Parameters<typeof fetch>[0];
 type FetchInit = Parameters<typeof fetch>[1];
-
-interface FetchLogMeta {
-  method: string;
-  url: string;
-  body?: string;
-  durationMs?: number;
-  status?: number;
-}
 
 function extractUrl(input: FetchInput): string {
   if (typeof input === 'string') return input;

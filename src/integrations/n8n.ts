@@ -1,43 +1,8 @@
 import { env } from '../config.js';
+import type { SearchItem, TrackN8NResponse, TraktType } from '../types/n8n.js';
 import { loggedFetch } from '../utils/loggedFetch.js';
 
-export type TraktType = 'movie' | 'show' | 'both';
-
-export interface TrackN8NResponse {
-  results: SearchItem[];
-  ok: boolean;
-  query: string;
-  query_original: string;
-}
-
-export interface SearchItem {
-  type: 'movie' | 'show';
-  title: string;
-  year?: number;
-  result?: SearchItem;
-  ids?: {
-    trakt?: number;
-    tmdb?: number;
-    imdb?: string;
-    slug?: string;
-    tvdb?: number;
-    tvrage?: number | null;
-  };
-  overview?: string;
-
-  // New camelCase fields from your n8n job
-  posterUrl?: string;
-  backdropUrl?: string;
-
-  // Optional legacy snake_case (kept for back-compat in UI code)
-  poster_url?: string;
-  backdrop_url?: string;
-
-  genres?: string[];
-  rating?: number;
-  runtime?: number; // minutes (movie) or avg episode runtime (show)
-  network?: string; // for shows
-}
+export type { SearchItem, TrackN8NResponse, TraktType } from '../types/n8n.js';
 
 type UnknownRecord = Record<string, unknown>;
 

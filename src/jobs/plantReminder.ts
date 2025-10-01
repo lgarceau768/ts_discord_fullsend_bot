@@ -1,46 +1,17 @@
 import { EmbedBuilder, type Client } from 'discord.js';
-import pg from 'pg';
 
 import { logger } from '../logger.js';
+import { query } from '../services/database.service.js';
+import type { PlantReminderPlant, PlantReminderRow } from '../types/plantReminder.js';
 import { loggedFetch } from '../utils/loggedFetch.js';
-
-interface ReminderRow {
-  id: number;
-  plant_id: number;
-  user_id: string;
-  channel_id: string | null;
-  guild_id: string | null;
-  enabled: boolean | null;
-  time: string | null; // "HH:mm"
-  water_interval_days: number | null;
-}
-
-interface PlantGet {
-  id: number;
-  name: string;
-  photo_url?: string;
-  photoUrl?: string;
-  notes?: string;
-  location?: string;
-  light?: string;
-  water_interval_days?: number | null;
-  last_watered_at?: string | null; // ISO
-  next_water_due_at?: string | null; // ISO
-  state?: string | null;
-}
+import { readSqlFile } from '../utils/sql.js';
 
 const TZ = (process.env.REMINDER_TZ ?? Intl.DateTimeFormat().resolvedOptions().timeZone) || 'UTC';
 
-const pool = new pg.Pool({
-  host: process.env.PGHOST,
-  port: process.env.PGPORT ? Number(process.env.PGPORT) : 5432,
-  database: process.env.PGDATABASE,
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  ssl: /^\s*(true|1|yes|on)\s*$/i.test(process.env.PGSSL ?? '')
-    ? { rejectUnauthorized: false }
-    : undefined,
-});
+const SQL_FETCH_ENABLED_REMINDERS = readSqlFile('plant_reminders_enabled.sql');
+
+type ReminderRow = PlantReminderRow;
+type PlantGet = PlantReminderPlant;
 
 // Very small in-memory “already notified today” map: key = `${plantId}:${YYYY-MM-DD}`
 const notifiedToday = new Set<string>();
@@ -119,20 +90,7 @@ function isDueNow(
 }
 
 async function fetchEnabledReminders(): Promise<ReminderRow[]> {
-  const q = `
-    SELECT id,
-           plant_id,
-           user_id,
-           channel_id,
-           guild_id,
-           enabled,
-           time,
-           water_interval_days
-    FROM plant_reminders
-    WHERE enabled IS TRUE
-    ORDER BY id
-  `;
-  const { rows } = await pool.query<ReminderRow>(q);
+  const { rows } = await query<ReminderRow>(SQL_FETCH_ENABLED_REMINDERS);
   return rows;
 }
 

@@ -1,47 +1,9 @@
 // src/integrations/jellyseerr.ts
 import { env } from '../config.js';
+import type { JellyseerrDetails, JellyseerrRequestOptions } from '../types/jellyseerr.js';
 import { loggedFetch } from '../utils/loggedFetch.js';
 
 export type MediaType = 'movie' | 'tv';
-
-interface JellyseerrMediaInfo {
-  status?: number; // 1=Pending, 2=Approved, 3=Processing, 4=Available, ...
-}
-
-export interface JellyseerrDetails {
-  id: number; // TMDB id
-  name?: string; // tv
-  title?: string; // movie
-  overview?: string;
-  posterPath?: string;
-  mediaInfo?: JellyseerrMediaInfo;
-  seasons?: { seasonNumber: number }[];
-}
-
-export interface RequestOptions {
-  /** Request 4K quality profile (if configured). */
-  is4k?: boolean;
-  /** Auto-approve the request (if your Jellyseerr permissions allow). */
-  isAutoApprove?: boolean;
-  /** Auto-download immediately (when approved). */
-  isAutoDownload?: boolean;
-  /** Trigger indexer/search immediately after creating the request. */
-  searchNow?: boolean;
-
-  /** Sonarr/Radarr server selection (numeric id in Jellyseerr). */
-  serverId?: number;
-  /** Quality profile id (Sonarr/Radarr). */
-  profileId?: number;
-  /** Root folder path or id (string as the API expects). */
-  rootFolder?: string;
-  /** Language profile id (Sonarr only). */
-  languageProfileId?: number;
-  /** Tag ids applied to created series/movie in Sonarr/Radarr. */
-  tags?: number[];
-
-  /** For TV requests you can pass explicit season numbers. */
-  seasons?: number[];
-}
 
 function baseUrl(): string {
   if (!env.JELLYSEERR_URL) throw new Error('JELLYSEERR_URL is not configured');
@@ -66,7 +28,7 @@ function parseBool(value: unknown): boolean | undefined {
 }
 
 /** Build default RequestOptions from environment variables (all optional). */
-function defaultsFromEnv(): RequestOptions {
+function defaultsFromEnv(): JellyseerrRequestOptions {
   return {
     is4k: parseBool(env.JELLYSEERR_4K),
     isAutoApprove: parseBool(env.JELLYSEERR_AUTO_APPROVE),
@@ -74,6 +36,9 @@ function defaultsFromEnv(): RequestOptions {
     searchNow: parseBool(env.JELLYSEERR_SEARCH_NOW),
   };
 }
+
+const isRequestOptions = (value: unknown): value is JellyseerrRequestOptions =>
+  Boolean(value && typeof value === 'object');
 
 const isJellyseerrDetails = (value: unknown): value is JellyseerrDetails =>
   Boolean(value && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'number');
@@ -103,19 +68,19 @@ export async function getDetails(mediaType: MediaType, tmdbId: number): Promise<
 export async function createRequest(
   mediaType: MediaType,
   tmdbId: number,
-  seasonsOrOptions?: number[] | RequestOptions,
+  seasonsOrOptions?: number[] | JellyseerrRequestOptions,
 ): Promise<void> {
   const envDefaults = defaultsFromEnv();
 
-  let options: RequestOptions = {};
+  let options: JellyseerrRequestOptions = {};
   if (Array.isArray(seasonsOrOptions)) {
     options.seasons = seasonsOrOptions;
-  } else if (seasonsOrOptions && typeof seasonsOrOptions === 'object') {
+  } else if (isRequestOptions(seasonsOrOptions)) {
     options = { ...seasonsOrOptions };
   }
 
   // Fill in undefined fields from env defaults
-  const merged: RequestOptions = { ...envDefaults, ...options };
+  const merged: JellyseerrRequestOptions = { ...envDefaults, ...options };
 
   // Build body per Jellyseerr /request schema
   const body: Record<string, unknown> = {

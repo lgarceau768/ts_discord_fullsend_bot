@@ -73,6 +73,31 @@ export interface DisplayEntry {
   pageTitle?: string;
 }
 
+export interface WatchCreatedEmbedInput {
+  base: WatchBase;
+  url: string;
+  uuid: string;
+  tags: string[];
+  pageTitle?: string | null;
+}
+
+export interface LatestEmbedInput {
+  uuid: string;
+  watchUrl: string;
+  tags: string[];
+  details?: ChangeDetectionWatchDetails;
+  priceSnapshot: PriceSnapshot | null;
+  pageTitle?: string;
+  errorMessage?: string;
+}
+
+export interface PriceCandidate {
+  node: Record<string, unknown>;
+  context: string;
+  timestamp?: string;
+  score: number;
+}
+
 export interface CreateWatchInput {
   url: string;
   title?: string;
