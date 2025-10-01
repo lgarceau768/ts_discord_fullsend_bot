@@ -8,6 +8,9 @@ const passthroughConfigurator = vi.fn((subcommand) => subcommand);
 
 vi.mock('pg', () => {
   class MockPool {
+    on() {
+      return this;
+    }
     async query() {
       return { rows: [], rowCount: 0 };
     }

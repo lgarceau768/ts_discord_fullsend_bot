@@ -27,6 +27,7 @@
 - 📥 **Download visibility** – `/downloads` summarizes qBittorrent activity with live progress, speeds, and ETAs.
 - 👀 **Price & change watching** – `/watch` subcommands talk to ChangeDetection.io, tag entries, and sync metadata into Postgres.
 - 🌿 **Plant concierge** – `/plant` commands log care, upload photos via n8n, schedule reminders, and keep notes organized.
+- 🗃️ **Shared database service** – `services/database.service.ts` centralizes Postgres connectivity with SQL kept in `src/sql/` files.
 - 🧰 **Modern toolchain** – TypeScript, ESLint (flat configs), Prettier, lint-staged, Husky, and Docker-compose support out of the box.
 
 ## Slash Commands
@@ -105,7 +106,8 @@ src/
 ├─ events/              # Discord event listeners wired in `src/index.ts`
 ├─ integrations/        # API adapters (Jellyseerr, n8n, qBittorrent, ChangeDetection)
 ├─ jobs/                # Scheduled tasks and cron helpers
-├─ services/            # Domain services (change detection, icon helpers, etc.)
+├─ services/            # Domain services (database connector, change detection, icon helpers, etc.)
+├─ sql/                 # Parameterized queries loaded by services/commands
 ├─ state/               # In-memory caches (e.g., search results)
 ├─ utils/               # Shared utilities like loggedFetch
 └─ types/               # Shared TypeScript types

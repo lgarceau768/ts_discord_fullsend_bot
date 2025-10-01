@@ -6,7 +6,6 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import pg from 'pg';
 
 import { logger } from '../../logger.js';
 import {
@@ -20,14 +19,14 @@ import {
   type UpdateWatchOpts,
 } from '../../services/changeDetectionService.js';
 import { getSnapshotIconUrl, getSiteIconUrl, getWatchIconUrl } from '../../services/iconService.js';
-import type {
-  CreateWatchInput,
-  DbInsertWatchArgs,
-  DbUpdateWatchArgs,
-  UpdateWatchInput,
-  WatchBase,
-  WatchRecord,
-} from '../../types/watch.js';
+import {
+  deleteWatchRecord,
+  getWatchRecord,
+  insertWatchRecord,
+  listWatchRecords,
+  updateWatchRecord,
+} from '../../services/watchDbService.js';
+import type { CreateWatchInput, UpdateWatchInput, WatchBase } from '../../types/watch.js';
 import type { SlashCommand } from '../_types.js';
 
 import { configureAddSubcommand, handleAddSubcommand, ADD_SUBCOMMAND_NAME } from './add.js';
@@ -59,40 +58,6 @@ const WATCH_COLOR_DANGER = 0xef4444;
 
 const WATCH_ICON_URL = getWatchIconUrl();
 const WATCH_SNAPSHOT_ICON_URL = getSnapshotIconUrl();
-
-const pool = new pg.Pool({
-  host: process.env.PGHOST,
-  port: process.env.PGPORT ? Number(process.env.PGPORT) : 5432,
-  database: process.env.PGDATABASE,
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  ssl: /^\s*(true|1|yes|on)\s*$/i.test(process.env.PGSSL ?? '')
-    ? { rejectUnauthorized: false }
-    : undefined,
-});
-
-function loadSql(name: string): string {
-  const sqlPath = new URL(`../../sql/${name}`, import.meta.url);
-  const contents = fs.readFileSync(sqlPath, 'utf-8');
-  logger.debug({ sqlFile: sqlPath.pathname }, 'Loaded SQL file for watch command');
-  return contents;
-}
-
-const SQL_ENSURE_CD_WATCHES = loadSql('cd_watches_ensure.sql');
-const SQL_INSERT_CD_WATCH = loadSql('cd_watches_insert.sql');
-const SQL_LIST_CD_WATCHES = loadSql('cd_watches_list.sql');
-const SQL_DELETE_CD_WATCH = loadSql('cd_watches_delete.sql');
-const SQL_GET_CD_WATCH = loadSql('cd_watches_get.sql');
-const SQL_UPDATE_CD_WATCH = loadSql('cd_watches_update.sql');
-
-let ensuredTable = false;
-async function ensureTable(): Promise<void> {
-  if (!ensuredTable) {
-    logger.debug('Ensuring cd_watches table exists');
-  }
-  await pool.query(SQL_ENSURE_CD_WATCHES);
-  ensuredTable = true;
-}
 
 let NOTIF_TEMPLATE =
   'Change detected on {{watch_url}}\n\nOld → New diff available in ChangeDetection.';
@@ -209,56 +174,6 @@ function mkOwnerTags(
   return Array.from(new Set(base));
 }
 
-async function dbInsertWatch(args: DbInsertWatchArgs): Promise<void> {
-  await ensureTable();
-  await pool.query(SQL_INSERT_CD_WATCH, [
-    args.userId,
-    args.userTag,
-    args.watchUuid,
-    args.url,
-    args.tags,
-  ]);
-  logger.debug(
-    { userId: args.userId, watchUuid: args.watchUuid },
-    'Inserted ChangeDetection watch mapping',
-  );
-}
-
-async function dbListWatches(userId: string): Promise<WatchRecord[]> {
-  await ensureTable();
-  const { rows } = await pool.query(SQL_LIST_CD_WATCHES, [userId]);
-  logger.debug({ userId, count: rows.length }, 'Fetched ChangeDetection watches for user');
-  return rows as WatchRecord[];
-}
-
-async function dbDeleteWatch(userId: string, uuid: string): Promise<boolean> {
-  await ensureTable();
-  const { rowCount } = await pool.query(SQL_DELETE_CD_WATCH, [userId, uuid]);
-  logger.debug({ userId, uuid, deleted: rowCount }, 'Removed ChangeDetection watch mapping');
-  return (rowCount ?? 0) > 0;
-}
-
-async function dbGetWatch(userId: string, uuid: string): Promise<WatchRecord | null> {
-  await ensureTable();
-  const { rows } = await pool.query(SQL_GET_CD_WATCH, [userId, uuid]);
-  const record = (rows[0] as WatchRecord | undefined) ?? null;
-  if (record) {
-    logger.debug({ userId, uuid }, 'Fetched single watch for user');
-  } else {
-    logger.debug({ userId, uuid }, 'Watch not found for user');
-  }
-  return record;
-}
-
-async function dbUpdateWatch(args: DbUpdateWatchArgs): Promise<void> {
-  await ensureTable();
-  await pool.query(SQL_UPDATE_CD_WATCH, [args.userId, args.watchUuid, args.tags]);
-  logger.debug(
-    { userId: args.userId, uuid: args.watchUuid },
-    'Updated ChangeDetection watch mapping',
-  );
-}
-
 const watchBase: WatchBase = {
   renderTemplate,
   notificationTemplate: NOTIF_TEMPLATE,
@@ -271,11 +186,11 @@ const watchBase: WatchBase = {
   cdGetWatchHistory,
   parseTags,
   mkOwnerTags,
-  dbInsertWatch,
-  dbListWatches,
-  dbDeleteWatch,
-  dbGetWatch,
-  dbUpdateWatch,
+  dbInsertWatch: insertWatchRecord,
+  dbListWatches: listWatchRecords,
+  dbDeleteWatch: deleteWatchRecord,
+  dbGetWatch: getWatchRecord,
+  dbUpdateWatch: updateWatchRecord,
   colors: {
     primary: WATCH_COLOR_PRIMARY,
     success: WATCH_COLOR_SUCCESS,
