@@ -4,7 +4,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)
 ![Discord.js](https://img.shields.io/badge/discord.js-14-5865f2?logo=discord&logoColor=white)
 [![CI](https://github.com/lgarceau768/ts_discord_fullsend_bot/actions/workflows/ci.yml/badge.svg)](https://github.com/lgarceau768/ts_discord_fullsend_bot/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-88%25-brightgreen)](#)
+[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](#)
 
 > An open-source, TypeScript-first Discord bot that keeps your media requests, download pipeline, price watches, and even houseplants on track. 🌱🎬
 
@@ -27,6 +27,7 @@
 - 📥 **Download visibility** – `/downloads` summarizes qBittorrent activity with live progress, speeds, and ETAs.
 - 👀 **Price & change watching** – `/watch` subcommands talk to ChangeDetection.io, tag entries, and sync metadata into Postgres.
 - 🌿 **Plant concierge** – `/plant` commands log care, upload photos via n8n, schedule reminders, and keep notes organized.
+- 🗃️ **Shared database service** – `services/database.service.ts` centralizes Postgres connectivity with SQL kept in `src/sql/` files.
 - 🧰 **Modern toolchain** – TypeScript, ESLint (flat configs), Prettier, lint-staged, Husky, and Docker-compose support out of the box.
 
 ## Slash Commands
@@ -97,6 +98,17 @@ docker-compose up --build
 | `npm run register:dev` / `npm run register:global` | Register slash commands on your guild or globally.      |
 | `npm run build`                                    | Compile TypeScript to `dist/`.                          |
 
+## Tooling
+
+We rely on a consistent set of tools to keep the codebase healthy:
+
+- **TypeScript** for static typing across commands, services, and integrations.
+- **ESLint** (flat config) with **Prettier** for linting and formatting; enforced via `lint-staged` and **Husky** pre-commit hooks.
+- **Vitest** for integration and utility tests, with coverage reporting via `@vitest/coverage-v8`.
+- **tsx** for fast TypeScript execution in local scripts (e.g., command registration and dev server).
+- **dotenv** plus **zod** to load and validate environment configuration.
+- **pg** for Postgres connectivity, wrapped in `services/database.service.ts`.
+
 ## Project Structure
 
 ```
@@ -105,7 +117,8 @@ src/
 ├─ events/              # Discord event listeners wired in `src/index.ts`
 ├─ integrations/        # API adapters (Jellyseerr, n8n, qBittorrent, ChangeDetection)
 ├─ jobs/                # Scheduled tasks and cron helpers
-├─ services/            # Domain services (change detection, icon helpers, etc.)
+├─ services/            # Domain services (database connector, change detection, icon helpers, etc.)
+├─ sql/                 # Parameterized queries loaded by services/commands
 ├─ state/               # In-memory caches (e.g., search results)
 ├─ utils/               # Shared utilities like loggedFetch
 └─ types/               # Shared TypeScript types

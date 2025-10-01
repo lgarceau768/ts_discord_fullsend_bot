@@ -1,23 +1,10 @@
 import { env } from '../config.js';
+import type { QbittorrentTorrent } from '../types/qbittorrent.js';
 import { loggedFetch } from '../utils/loggedFetch.js';
 
-/**
- * Shape of a torrent returned by the qBittorrent `/torrents/info` API. Only
- * a subset of fields are defined here since the download command only
- * requires these properties. For the full list, see the qBittorrent
- * WebUI API documentation.
- */
-export interface QBTorrent {
-  name: string;
-  progress: number;
-  dlspeed: number;
-  eta: number;
-  state: string;
-}
-
-function isQBTorrent(value: unknown): value is QBTorrent {
+function isQBTorrent(value: unknown): value is QbittorrentTorrent {
   if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<QBTorrent>;
+  const candidate = value as Partial<QbittorrentTorrent>;
   return (
     typeof candidate.name === 'string' &&
     typeof candidate.progress === 'number' &&
@@ -38,7 +25,7 @@ function isQBTorrent(value: unknown): value is QBTorrent {
  *
  * @returns A list of torrents currently downloading
  */
-export async function getActiveDownloads(): Promise<QBTorrent[]> {
+export async function getActiveDownloads(): Promise<QbittorrentTorrent[]> {
   if (!env.QBIT_URL) {
     throw new Error('QBIT_URL environment variable is not set');
   }

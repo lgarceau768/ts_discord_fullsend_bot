@@ -4,7 +4,13 @@ import type {
   ChangeDetectionHistoryEntry,
   ChangeDetectionWatchDetails,
 } from '../../types/changeDetection.js';
-import type { DisplayEntry, PriceSnapshot, WatchBase } from '../../types/watch.js';
+import type {
+  DisplayEntry,
+  LatestEmbedInput,
+  PriceCandidate,
+  PriceSnapshot,
+  WatchBase,
+} from '../../types/watch.js';
 
 export type { PriceSnapshot, DisplayEntry } from '../../types/watch.js';
 
@@ -102,13 +108,6 @@ function formatPrice(raw: unknown, currency?: unknown): string | undefined {
     return `${currencyStr}${value}`;
   }
   return value;
-}
-
-interface PriceCandidate {
-  node: UnknownRecord;
-  context: string;
-  timestamp?: string;
-  score: number;
 }
 
 function findPriceCandidate(
@@ -421,16 +420,6 @@ export function buildFullListEmbed(base: WatchBase, entry: DisplayEntry): EmbedB
   embed.setFooter({ text: `Watch #${entry.index} · UUID ${entry.record.watch_uuid}` });
 
   return embed;
-}
-
-interface LatestEmbedInput {
-  uuid: string;
-  watchUrl: string;
-  tags: string[];
-  details?: ChangeDetectionWatchDetails;
-  priceSnapshot: PriceSnapshot | null;
-  pageTitle?: string;
-  errorMessage?: string;
 }
 
 export function buildLatestEmbed(base: WatchBase, input: LatestEmbedInput): EmbedBuilder {

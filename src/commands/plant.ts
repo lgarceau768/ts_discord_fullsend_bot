@@ -6,56 +6,11 @@ import {
   type ChatInputCommandInteraction,
 } from 'discord.js';
 
+import type { ApiResponse, PlantCareAnswer, PlantRecord, LightLevel } from '../types/plant.js';
 import { getErrorMessage } from '../utils/errors.js';
 import { loggedFetch } from '../utils/loggedFetch.js';
 
 import type { SlashCommand } from './_types.js';
-
-/** ============ Types & helpers ============ */
-
-type LightLevel = 'low' | 'medium' | 'bright' | 'direct';
-type PlantState = 'ok' | 'thirsty' | 'overwatered' | 'repot-soon' | 'pest-risk';
-
-export interface PlantRecord {
-  id: number;
-  userId: string;
-  name: string;
-  species?: string;
-  location?: string;
-  light?: LightLevel;
-  notes?: string;
-  photoUrl?: string;
-  image_url?: string;
-
-  water_interval_days?: number;
-
-  last_watered_at?: string; // ISO
-  next_water_due_at?: string; // ISO (server-computed)
-  state?: PlantState;
-  created_at?: string;
-  updated_at?: string;
-}
-
-// Response shape for action: "care"
-interface PlantCareAnswer {
-  answer: string;
-  id: number;
-  name: string;
-  image_url?: string; // as returned by n8n
-  imageUrl?: string; // optional camelCase fallback
-  location?: string;
-  question?: string;
-}
-
-interface ApiOk<T> {
-  ok: true;
-  data: T;
-}
-interface ApiErr {
-  ok: false;
-  error: string;
-}
-type ApiResp<T> = ApiOk<T> | ApiErr;
 
 const PLANT_API = process.env.N8N_PLANT_API_URL;
 const N8N_KEY = process.env.N8N_API_KEY ?? '';
@@ -75,7 +30,10 @@ const opt = {
 };
 
 /** Post JSON to n8n plant API. You route actions inside n8n. */
-async function plantApi<T>(action: string, payload: Record<string, unknown>): Promise<ApiResp<T>> {
+async function plantApi<T>(
+  action: string,
+  payload: Record<string, unknown>,
+): Promise<ApiResponse<T>> {
   if (!PLANT_API) return { ok: false, error: 'N8N_PLANT_API_URL is not configured' };
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (N8N_KEY) headers.Authorization = `Bearer ${N8N_KEY}`;
@@ -161,7 +119,7 @@ async function uploadPhotoViaN8n(opts: {
   attachment?: Attachment | null;
   image_url?: string | null;
   caption?: string | null;
-}): Promise<ApiResp<{ imageUrl: string }>> {
+}): Promise<ApiResponse<{ imageUrl: string }>> {
   let imageUrl = opts.image_url?.trim();
   if (!imageUrl && opts.attachment) imageUrl = opts.attachment.url;
   if (!imageUrl) return { ok: false, error: 'No image supplied' };
