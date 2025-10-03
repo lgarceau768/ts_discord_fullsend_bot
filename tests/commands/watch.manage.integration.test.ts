@@ -214,7 +214,7 @@ describe('watch command subhandlers', () => {
 
     const { interaction, editReply } = createInteractionMock({
       subcommand: 'add',
-      stringOptions: { url: 'https://store.example/foo' },
+      stringOptions: { url: 'https://store.example/foo', title: 'Custom Watch' },
     });
 
     await import('../../src/commands/watch/add.js').then(({ handleAddSubcommand }) =>

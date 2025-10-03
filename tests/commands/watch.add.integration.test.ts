@@ -121,7 +121,7 @@ describe('watch add subcommand handler', () => {
     const { handleAddSubcommand } = await import('../../src/commands/watch/add.js');
     const { interaction, editReply } = createInteractionMock({
       subcommand: 'add',
-      stringOptions: { url: 'https://store.example/item' },
+      stringOptions: { url: 'https://store.example/item', title: 'Custom Title' },
     });
 
     await handleAddSubcommand(base, interaction);
