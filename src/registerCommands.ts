@@ -8,6 +8,7 @@ import {
 
 import type { SlashCommand } from './commands/_types.js';
 import downloads from './commands/downloads.js';
+import penny from './commands/penny/index.js';
 import ping from './commands/ping.js';
 import plant from './commands/plant.js';
 import request from './commands/request';
@@ -25,7 +26,7 @@ if (!isGlobal && !isGuild) {
 }
 
 // Collect commands to register. Add new commands here.
-const commands: SlashCommand[] = [ping, search, downloads, request, plant, watch];
+const commands: SlashCommand[] = [ping, search, downloads, request, plant, penny, watch];
 
 const hasToJSON = (
   data: SlashCommand['data'],
@@ -51,8 +52,8 @@ async function main() {
     logger.info(`✅ Registered ${commands.length} command(s) to guild ${env.DISCORD_GUILD_ID}`);
   } else if (isGlobal) {
     const route = Routes.applicationCommands(env.DISCORD_CLIENT_ID);
-    await rest.put(route, { body });
-    logger.info(`🌍 Registered ${commands.length} global command(s)`);
+    const response = (await rest.put(route, { body })) as unknown[];
+    logger.info(`🌍 Registered ${response.length} global command(s)`);
     logger.info('Note: global commands can take up to an hour to propagate.');
   }
 }

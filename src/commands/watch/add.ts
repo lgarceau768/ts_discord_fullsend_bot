@@ -21,7 +21,7 @@ export function configureAddSubcommand(
       option.setName('url').setDescription('Product/website URL').setRequired(true),
     )
     .addStringOption((option) =>
-      option.setName('title').setDescription('Optional title to use for this watch'),
+      option.setName('title').setDescription('Title to use for this watch').setRequired(true),
     )
     .addStringOption((option) =>
       option.setName('store').setDescription('Store name (e.g., bestbuy, target, etc.)'),
@@ -32,23 +32,25 @@ export function configureAddSubcommand(
         .setDescription('Extra tags (comma or space separated, e.g., gpu,4090,deal)'),
     );
 }
+
 function buildWatchCreatedEmbed(input: WatchCreatedEmbedInput): EmbedBuilder {
   const { base, url, uuid, tags, pageTitle } = input;
-  const title = pageTitle?.trim() ?? url;
+  const trimmedTitle = pageTitle?.trim();
+  const resolvedTitle = trimmedTitle && trimmedTitle.length > 0 ? trimmedTitle : url;
+  const tagDisplay = tags.length > 0 ? tags.map((tag) => `\`${tag}\``).join(' ') : '—';
+
   const embed = new EmbedBuilder()
-    .setTitle(title)
+    .setTitle(resolvedTitle)
     .setAuthor({ name: 'Watch Created', iconURL: base.icons.watch })
     .setColor(base.colors.success)
     .addFields({ name: 'Product', value: `[View product](${url})`, inline: false })
-    .addFields({
-      name: 'Tags',
-      value: tags.length ? tags.map((tag) => `\`${tag}\``).join(' ') : '—',
-      inline: false,
-    })
+    .addFields({ name: 'Tags', value: tagDisplay, inline: false })
     .addFields({ name: 'Watch UUID', value: `\`${uuid}\``, inline: false });
 
-  const iconUrl = base.getSiteIconUrl(url);
-  if (iconUrl) embed.setThumbnail(iconUrl);
+  const iconUrl = base.getSiteIconUrl(url)?.trim();
+  if (iconUrl) {
+    embed.setThumbnail(iconUrl);
+  }
 
   return embed;
 }
@@ -58,7 +60,7 @@ export async function handleAddSubcommand(
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const url = interaction.options.getString('url', true).trim();
-  const customTitle = interaction.options.getString('title')?.trim();
+  const customTitle = interaction.options.getString('title', true).trim();
   const store = interaction.options.getString('store')?.trim().toLowerCase() ?? null;
   const extraTags = base.parseTags(interaction.options.getString('tags'));
   const userId = interaction.user.id;
@@ -70,7 +72,7 @@ export async function handleAddSubcommand(
 
   try {
     const tags = base.mkOwnerTags(userId, requesterTag, store, extraTags);
-    const derivedTitle = customTitle ?? inferTitleFromUrl(url);
+    const derivedTitle = customTitle.length > 0 ? customTitle : inferTitleFromUrl(url);
     const title = `[PRICE WATCH] ${derivedTitle}`;
 
     const templateContext = {

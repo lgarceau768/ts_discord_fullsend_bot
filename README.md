@@ -4,7 +4,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)
 ![Discord.js](https://img.shields.io/badge/discord.js-14-5865f2?logo=discord&logoColor=white)
 [![CI](https://github.com/lgarceau768/ts_discord_fullsend_bot/actions/workflows/ci.yml/badge.svg)](https://github.com/lgarceau768/ts_discord_fullsend_bot/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](#)
+[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen)](#)
 
 > An open-source, TypeScript-first Discord bot that keeps your media requests, download pipeline, price watches, and even houseplants on track. 🌱🎬
 
@@ -32,14 +32,14 @@
 
 ## Slash Commands
 
-| Command                                          | What it does                                                                                                   | Key integrations  |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ----------------- | ------ | ------ | ------ | ------- | ----------------------------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------ | --- |
-| `/ping`                                          | Health check that round-trips Discord and reports latency.                                                     | —                 |
-| `/search query:<title> type:<movie\|show\|both>` | Launches a result thread powered by Trakt via n8n, complete with rich embeds and quick follow-up instructions. | n8n, Trakt        |
-| `/request index:<n> seasons:<mode?>`             | Converts the cached `/search` result into a Jellyseerr request (smart defaults for seasons).                   | Jellyseerr        |
-| `/downloads`                                     | Lists active torrents, speeds, and ETAs from qBittorrent.                                                      | qBittorrent WebUI |
-| `/watch add                                      | list                                                                                                           | minimal           | full   | update | remove | latest` | Administers ChangeDetection watches, keeps history in Postgres, and renders informative embeds. | ChangeDetection.io, PostgreSQL |
-| `/plant add                                      | get                                                                                                            | list              | update | delete | water  | photo   | care                                                                                            | reminder`                      | Manages your plant collection, water logs, reminders, and photo gallery through an n8n workflow. | n8n |
+| Command                                                       | What it does                                                                                                   | Key integrations               |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `/ping`                                                       | Health check that round-trips Discord and reports latency.                                                     | —                              |
+| `/search query:<title> type:<movie\|show\|both>`              | Launches a result thread powered by Trakt via n8n, complete with rich embeds and quick follow-up instructions. | n8n, Trakt                     |
+| `/request index:<n> seasons:<mode?>`                          | Converts the cached `/search` result into a Jellyseerr request (smart defaults for seasons).                   | Jellyseerr                     |
+| `/downloads`                                                  | Lists active torrents, speeds, and ETAs from qBittorrent.                                                      | qBittorrent WebUI              |
+| `/watch add list latest update remove`                        | Administers ChangeDetection watches, keeps history in Postgres, and renders informative embeds.                | ChangeDetection.io, PostgreSQL |
+| `/plant add get list update delete water photo care reminder` | Manages your plant collection, water logs, reminders, and photo gallery through an n8n workflow.               | n8n                            |
 
 ## Integrations
 
