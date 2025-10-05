@@ -16,7 +16,7 @@ jobs:
         node: [20, 22] # active LTS + current
     steps:
       - uses: actions/checkout@v4 # get your code
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
           cache: npm # built-in dependency cache
