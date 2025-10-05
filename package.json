@@ -36,14 +36,14 @@
     "printWidth": 100
   },
   "dependencies": {
-    "@eslint/js": "^9.36.0",
+    "@eslint/js": "^9.37.0",
     "@types/eslint": "^9.6.1",
     "discord.js": "^14.16.3",
     "dotenv": "^16.4.5",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-promise": "^7.2.1",
-    "jiti": "^2.6.0",
+    "jiti": "^2.6.1",
     "pg": "^8.16.3",
     "pino": "^9.3.2",
     "typescript-eslint": "^8.45.0",
