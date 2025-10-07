@@ -17,10 +17,13 @@ describe('watch subcommand configuration', () => {
     expect(json.options?.some((opt) => opt.name === 'tags')).toBe(true);
   });
 
-  it('configures the list subcommand with mode option', () => {
+  it('configures the list subcommand with expected filtering options', () => {
     const json = toJson(configureListSubcommand(new SlashCommandSubcommandBuilder()));
     expect(json.name).toBe('list');
-    expect(json.options?.[0]?.name).toBe('mode');
+    const optionNames = json.options?.map((opt) => opt.name) ?? [];
+    expect(optionNames).toEqual(
+      expect.arrayContaining(['mode', 'store', 'tags', 'search', 'page', 'all']),
+    );
   });
 
   it('configures the remove subcommand with uuid option', () => {

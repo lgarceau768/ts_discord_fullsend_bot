@@ -28,7 +28,7 @@ describe('watch command subhandlers', () => {
         ...extras,
       ]),
       dbInsertWatch: vi.fn(async () => undefined),
-      dbListWatches: vi.fn(async () => [
+      dbListWatches: vi.fn(async (_userId, _options) => [
         createWatchRecord(),
         createWatchRecord({ watch_uuid: 'watch-uuid-2' }),
       ]),
@@ -65,6 +65,7 @@ describe('watch command subhandlers', () => {
     expect(deferReply).toHaveBeenCalledWith({ ephemeral: true });
     const payload = editReply.mock.calls[0][0] as { content: string; embeds: unknown[] };
     expect(payload.content).toContain('📋 You have **2** watch(es).');
+    expect(payload.content).toContain('(page 1/1, 10 per page)');
     expect(Array.isArray(payload.embeds)).toBe(true);
     expect(payload.embeds).toHaveLength(2);
   });
@@ -79,12 +80,12 @@ describe('watch command subhandlers', () => {
     await handleListSubcommand(base, interaction);
 
     const payload = editReply.mock.calls[0][0] as { content: string };
-    expect(payload.content).toContain('🔎 Showing 2 in **Full** mode.');
+    expect(payload.content).toContain('🔎 Showing 2 in **Full** mode (page 1/1, 10 per page).');
   });
 
   it('informs the user when no watches are stored', async () => {
     const base = buildBase();
-    base.dbListWatches = vi.fn(async () => []);
+    base.dbListWatches = vi.fn(async (_userId, _options) => []);
 
     const { interaction, editReply } = createInteractionMock({ subcommand: 'list' });
 
@@ -97,7 +98,7 @@ describe('watch command subhandlers', () => {
 
   it('notes when additional watches are truncated', async () => {
     const base = buildBase();
-    base.dbListWatches = vi.fn(async () =>
+    base.dbListWatches = vi.fn(async (_userId, _options) =>
       Array.from({ length: 12 }, (_, i) =>
         createWatchRecord({ watch_uuid: `watch-${i}`, url: `https://example.com/${i}` }),
       ),
@@ -108,13 +109,131 @@ describe('watch command subhandlers', () => {
     await handleListSubcommand(base, interaction);
 
     const payload = editReply.mock.calls[0][0] as { content: string };
-    expect(payload.content).toContain('…and 2 more not shown.');
+    expect(payload.content).toContain('➕ …and 2 more not shown here.');
+    expect(payload.content).toContain('➡️ Use `/watch list page:2`');
+  });
+
+  it('applies store, tag, and search filters', async () => {
+    const base = buildBase();
+    base.dbListWatches = vi.fn(async (_userId, _options) => [
+      createWatchRecord({
+        watch_uuid: 'watch-1',
+        url: 'https://example.com/gpu-deal',
+        tags: ['price-watch', 'store:bestbuy', 'gpu'],
+      }),
+      createWatchRecord({
+        watch_uuid: 'watch-2',
+        url: 'https://example.com/cpu-deal',
+        tags: ['price-watch', 'store:target', 'cpu'],
+      }),
+    ]);
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'list',
+      stringOptions: { store: 'BestBuy', tags: 'gpu', search: 'gpu' },
+    });
+
+    await handleListSubcommand(base, interaction);
+
+    const payload = editReply.mock.calls[0][0] as { content: string; embeds: unknown[] };
+    expect(payload.embeds).toHaveLength(1);
+    expect(payload.content).toContain('🧭 Filters: store=bestbuy · tags=gpu · search=gpu');
+  });
+
+  it('supports pagination across multiple pages', async () => {
+    const base = buildBase();
+    base.dbListWatches = vi.fn(async (_userId, _options) =>
+      Array.from({ length: 15 }, (_, i) =>
+        createWatchRecord({ watch_uuid: `watch-${i}`, url: `https://example.com/${i}` }),
+      ),
+    );
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'list',
+      integerOptions: { page: 2 },
+    });
+
+    await handleListSubcommand(base, interaction);
+
+    const payload = editReply.mock.calls[0][0] as { content: string; embeds: unknown[] };
+    expect(payload.embeds).toHaveLength(5);
+    expect(payload.content).toContain('page 2/2');
+    expect(payload.content).toContain('⬅️ Use `/watch list page:1`');
+    expect(base.dbListWatches).toHaveBeenCalledWith(
+      'user-id',
+      expect.objectContaining({ limit: expect.any(Number) }),
+    );
+  });
+
+  it('clamps to the last page when a higher page is requested', async () => {
+    const base = buildBase();
+    base.dbListWatches = vi.fn(async (_userId, _options) =>
+      Array.from({ length: 12 }, (_, i) =>
+        createWatchRecord({ watch_uuid: `watch-${i}`, url: `https://example.com/${i}` }),
+      ),
+    );
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'list',
+      integerOptions: { page: 4 },
+    });
+
+    await handleListSubcommand(base, interaction);
+
+    const payload = editReply.mock.calls[0][0] as { content: string; embeds: unknown[] };
+    expect(payload.content).toContain('page 2/2');
+    expect(payload.content).toContain('⬅️ Use `/watch list page:1`');
+    expect(payload.content).not.toContain('page 4/');
+  });
+
+  it('shows all results when requested', async () => {
+    const base = buildBase();
+    base.dbListWatches = vi.fn(async (_userId, _options) =>
+      Array.from({ length: 12 }, (_, i) =>
+        createWatchRecord({ watch_uuid: `watch-${i}`, url: `https://example.com/${i}` }),
+      ),
+    );
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'list',
+      booleanOptions: { all: true },
+    });
+
+    await handleListSubcommand(base, interaction);
+
+    const payload = editReply.mock.calls[0][0] as { content: string; embeds: unknown[] };
+    expect(payload.embeds).toHaveLength(12);
+    expect(payload.content).toContain('🔎 Showing 12 in **Minimal** mode');
+    expect(payload.content).not.toContain('(page');
+    expect(base.dbListWatches).toHaveBeenCalledWith('user-id', { limit: 250 });
+  });
+
+  it('reports when no entries match the provided filters', async () => {
+    const base = buildBase();
+    base.dbListWatches = vi.fn(async (_userId, _options) => [
+      createWatchRecord({
+        watch_uuid: 'watch-1',
+        url: 'https://example.com/widget',
+        tags: ['price-watch', 'store:bestbuy'],
+      }),
+    ]);
+
+    const { interaction, editReply } = createInteractionMock({
+      subcommand: 'list',
+      stringOptions: { store: 'target', tags: 'cpu' },
+    });
+
+    await handleListSubcommand(base, interaction);
+
+    expect(editReply).toHaveBeenCalledWith(
+      '🔍 No watches match your filters. Try adjusting them and retry.',
+    );
   });
 
   it('handles list failures gracefully', async () => {
     const base = buildBase();
     const error = new Error('db down');
-    base.dbListWatches = vi.fn(async () => {
+    base.dbListWatches = vi.fn(async (_userId, _options) => {
       throw error;
     });
 

@@ -22,6 +22,11 @@ export interface WatchRecord {
   created_at: string;
 }
 
+export interface DbListWatchOptions {
+  limit?: number;
+  offset?: number;
+}
+
 export interface DbInsertWatchArgs {
   userId: string;
   userTag: string;
@@ -48,7 +53,7 @@ export interface WatchBase {
     extras?: string[],
   ): string[];
   dbInsertWatch(args: DbInsertWatchArgs): Promise<void>;
-  dbListWatches(userId: string): Promise<WatchRecord[]>;
+  dbListWatches(userId: string, options?: DbListWatchOptions): Promise<WatchRecord[]>;
   dbDeleteWatch(userId: string, uuid: string): Promise<boolean>;
   dbGetWatch(userId: string, uuid: string): Promise<WatchRecord | null>;
   dbUpdateWatch(args: DbUpdateWatchArgs): Promise<void>;

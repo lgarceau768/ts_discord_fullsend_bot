@@ -56,7 +56,7 @@ describe('watch add subcommand handler', () => {
       parseTags: (input?: string | null) => (input ? input.split(/[\s,]+/).filter(Boolean) : []),
       mkOwnerTags,
       dbInsertWatch,
-      dbListWatches: vi.fn(async () => []),
+      dbListWatches: vi.fn(async (_userId, _options) => []),
       dbDeleteWatch: vi.fn(async () => true),
       dbGetWatch: vi.fn(async () => null),
       dbUpdateWatch: vi.fn(async () => undefined),

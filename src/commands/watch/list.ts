@@ -14,6 +14,9 @@ import {
 
 export const LIST_SUBCOMMAND_NAME = 'list';
 
+const PAGE_SIZE = 10;
+const MAX_FETCH_LIMIT = 250;
+
 export function configureListSubcommand(
   subcommand: SlashCommandSubcommandBuilder,
 ): SlashCommandSubcommandBuilder {
@@ -25,6 +28,24 @@ export function configureListSubcommand(
         .setName('mode')
         .setDescription('Output mode: minimal (default) or full')
         .addChoices({ name: 'Minimal', value: 'minimal' }, { name: 'Full', value: 'full' }),
+    )
+    .addStringOption((option) =>
+      option.setName('store').setDescription('Filter by store tag (e.g., bestbuy, target)'),
+    )
+    .addStringOption((option) =>
+      option.setName('tags').setDescription('Filter by tags (comma or space separated)'),
+    )
+    .addStringOption((option) =>
+      option.setName('search').setDescription('Filter by URL, UUID, or tag substring'),
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName('page')
+        .setDescription('Page number to display (10 results per page)')
+        .setMinValue(1),
+    )
+    .addBooleanOption((option) =>
+      option.setName('all').setDescription('Show all results (ignores pagination)'),
     );
 }
 
@@ -36,17 +57,86 @@ export async function handleListSubcommand(
 
   const modeInput = interaction.options.getString('mode')?.toLowerCase() ?? 'minimal';
   const mode = modeInput === 'full' ? 'full' : 'minimal';
-  logger.debug({ userId: interaction.user.id, mode }, 'Processing /watch list');
+  const rawStoreFilter = interaction.options.getString('store')?.trim().toLowerCase() ?? '';
+  const storeFilter = rawStoreFilter.replace(/^store:/, '').trim();
+  const tagsInput = interaction.options.getString('tags') ?? undefined;
+  const tagFilters = base.parseTags(tagsInput);
+  const searchInput = interaction.options.getString('search')?.trim() ?? '';
+  const searchTerm = searchInput.toLowerCase();
+  const showAll = interaction.options.getBoolean('all') ?? false;
+  let page = interaction.options.getInteger('page') ?? 1;
+  if (!Number.isFinite(page) || page < 1) {
+    page = 1;
+  }
+
+  logger.debug(
+    {
+      userId: interaction.user.id,
+      mode,
+      storeFilter,
+      tagFilters,
+      search: searchTerm,
+      showAll,
+      page,
+    },
+    'Processing /watch list',
+  );
 
   try {
-    const rows = await base.dbListWatches(interaction.user.id);
+    const requestedFetch = showAll ? MAX_FETCH_LIMIT : page * PAGE_SIZE + PAGE_SIZE;
+    const fetchLimit = Math.min(Math.max(requestedFetch, PAGE_SIZE), MAX_FETCH_LIMIT);
+
+    const rows = await base.dbListWatches(interaction.user.id, { limit: fetchLimit });
     if (!rows.length) {
       await interaction.editReply('🌱 You have no watches yet. Add one with `/watch add`.');
       logger.debug({ userId: interaction.user.id }, 'No watches found for user');
       return;
     }
 
-    const displayRows = rows.slice(0, 10);
+    const normalizedTagFilters = tagFilters.map((tag) => tag.toLowerCase());
+
+    const filteredRows = rows.filter((record) => {
+      const rowTags = (record.tags || []).map((tag) => tag.toLowerCase());
+
+      if (storeFilter) {
+        if (!rowTags.some((tag) => tag === `store:${storeFilter}`)) {
+          return false;
+        }
+      }
+
+      if (normalizedTagFilters.length) {
+        const hasAll = normalizedTagFilters.every((tag) => rowTags.includes(tag));
+        if (!hasAll) return false;
+      }
+
+      if (searchTerm) {
+        const haystack = [record.url, record.watch_uuid, ...rowTags].join(' ').toLowerCase();
+        if (!haystack.includes(searchTerm)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (!filteredRows.length) {
+      await interaction.editReply(
+        '🔍 No watches match your filters. Try adjusting them and retry.',
+      );
+      logger.debug({ userId: interaction.user.id }, 'No watches matched filters');
+      return;
+    }
+
+    const totalCount = filteredRows.length;
+    const pageCount = showAll ? 1 : Math.max(Math.ceil(totalCount / PAGE_SIZE), 1);
+    if (!showAll && page > pageCount) {
+      page = pageCount;
+    }
+
+    const startIndex = showAll ? 0 : (page - 1) * PAGE_SIZE;
+    const endIndex = showAll ? totalCount : Math.min(startIndex + PAGE_SIZE, totalCount);
+
+    const displayRows = filteredRows.slice(startIndex, endIndex);
     const entries: DisplayEntry[] = [];
 
     for (let i = 0; i < displayRows.length; i += 1) {
@@ -88,7 +178,7 @@ export async function handleListSubcommand(
       pageTitle ??= inferTitleFromUrl(record.url);
 
       entries.push({
-        index: i + 1,
+        index: startIndex + i + 1,
         record,
         details,
         priceSnapshot,
@@ -102,15 +192,44 @@ export async function handleListSubcommand(
     );
 
     const modeLabel = mode === 'full' ? 'Full' : 'Minimal';
+    const filterLabels: string[] = [];
+    if (storeFilter) filterLabels.push(`store=${storeFilter}`);
+    if (normalizedTagFilters.length) filterLabels.push(`tags=${normalizedTagFilters.join(',')}`);
+    if (searchTerm) filterLabels.push(`search=${searchTerm}`);
+
     const summaryLines = [
-      `📋 You have **${rows.length}** watch(es).`,
-      `🔎 Showing ${entries.length} in **${modeLabel}** mode.`,
+      `${filterLabels.length ? '📋 Found' : '📋 You have'} **${totalCount}** watch(es).`,
+      `🔎 Showing ${entries.length} in **${modeLabel}** mode${showAll ? '' : ` (page ${page}/${pageCount}, ${PAGE_SIZE} per page)`}.`,
     ];
-    if (rows.length > entries.length) {
-      summaryLines.push(`➕ …and ${rows.length - entries.length} more not shown.`);
+
+    if (filterLabels.length) {
+      summaryLines.splice(1, 0, `🧭 Filters: ${filterLabels.join(' · ')}`);
     }
+
+    if (!showAll && totalCount > entries.length) {
+      const remaining = Math.max(totalCount - endIndex, 0);
+      if (remaining > 0) {
+        summaryLines.push(`➕ …and ${remaining} more not shown here.`);
+      }
+      if (page < pageCount) {
+        summaryLines.push(
+          `➡️ Use \`/watch list page:${page + 1}\` for the next ${Math.min(PAGE_SIZE, remaining || PAGE_SIZE)}.`,
+        );
+      }
+      if (page > 1) {
+        summaryLines.push(`⬅️ Use \`/watch list page:${page - 1}\` to revisit the previous page.`);
+      }
+      if (pageCount > 1) {
+        summaryLines.push('🧾 Use `/watch list all:true` to show all matches at once.');
+      }
+    }
+
     if (mode === 'minimal') {
       summaryLines.push('ℹ️ Use `/watch list mode:full` for detailed output.');
+    }
+
+    if (rows.length === fetchLimit && fetchLimit === MAX_FETCH_LIMIT) {
+      summaryLines.push(`⚠️ Showing the first ${MAX_FETCH_LIMIT} records stored for you.`);
     }
 
     await interaction.editReply({

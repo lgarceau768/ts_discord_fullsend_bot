@@ -1,5 +1,10 @@
 import { logger } from '../logger.js';
-import type { DbInsertWatchArgs, DbUpdateWatchArgs, WatchRecord } from '../types/watch.js';
+import type {
+  DbInsertWatchArgs,
+  DbListWatchOptions,
+  DbUpdateWatchArgs,
+  WatchRecord,
+} from '../types/watch.js';
 import { readSqlFile } from '../utils/sql.js';
 
 import { query } from './database.service.js';
@@ -34,11 +39,16 @@ export async function insertWatchRecord(args: DbInsertWatchArgs): Promise<void> 
   );
 }
 
-export async function listWatchRecords(userId: string): Promise<WatchRecord[]> {
+export async function listWatchRecords(
+  userId: string,
+  options: DbListWatchOptions = {},
+): Promise<WatchRecord[]> {
   await ensureTables();
-  const result = await query<WatchRecord>(SQL_LIST_CD_WATCHES, [userId]);
+  const limit = Math.max(Math.min(options.limit ?? 25, 500), 1);
+  const offset = Math.max(options.offset ?? 0, 0);
+  const result = await query<WatchRecord>(SQL_LIST_CD_WATCHES, [userId, limit, offset]);
   logger.debug(
-    { userId, count: result.rowCount ?? result.rows.length },
+    { userId, count: result.rowCount ?? result.rows.length, limit, offset },
     'Fetched ChangeDetection watches for user',
   );
   return result.rows;
