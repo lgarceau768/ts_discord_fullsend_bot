@@ -1,17 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
-import penny from '../../src/commands/penny/index.ts';
-import { handleRecentSubcommand, RECENT_SUBCOMMAND_NAME } from '../../src/commands/penny/recent.ts';
-import { handleSearchSubcommand, SEARCH_SUBCOMMAND_NAME } from '../../src/commands/penny/search.ts';
-import { handleStatusSubcommand, STATUS_SUBCOMMAND_NAME } from '../../src/commands/penny/status.ts';
+import penny from '../../src/features/penny/commands/penny/index.ts';
+import {
+  handleRecentSubcommand,
+  RECENT_SUBCOMMAND_NAME,
+} from '../../src/features/penny/commands/penny/recent.ts';
+import {
+  handleSearchSubcommand,
+  SEARCH_SUBCOMMAND_NAME,
+} from '../../src/features/penny/commands/penny/search.ts';
+import {
+  handleStatusSubcommand,
+  STATUS_SUBCOMMAND_NAME,
+} from '../../src/features/penny/commands/penny/status.ts';
 import {
   handleSubscribeSubcommand,
   SUBSCRIBE_SUBCOMMAND_NAME,
-} from '../../src/commands/penny/subscribe.ts';
+} from '../../src/features/penny/commands/penny/subscribe.ts';
 import {
   handleUnsubscribeSubcommand,
   UNSUBSCRIBE_SUBCOMMAND_NAME,
-} from '../../src/commands/penny/unsubscribe.ts';
+} from '../../src/features/penny/commands/penny/unsubscribe.ts';
 import { createInteractionMock } from '../helpers/discord.js';
 
 const SEARCH_MESSAGE =

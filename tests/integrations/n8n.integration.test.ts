@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const loggedFetchMock = vi.fn();
 
-vi.mock('../../src/utils/loggedFetch.js', () => ({
+vi.mock('../../src/core/utils/loggedFetch.js', () => ({
   loggedFetch: loggedFetchMock,
 }));
 
@@ -48,7 +48,7 @@ describe('n8n integration', () => {
     );
     loggedFetchMock.mockResolvedValueOnce(response);
 
-    const module = await import('../../src/integrations/n8n.js');
+    const module = await import('../../src/core/integrations/n8nTrakt.js');
     const payload = await module.callTraktSearch('Dune', 'movie');
 
     expect(payload.results).toHaveLength(2);
@@ -72,7 +72,7 @@ describe('n8n integration', () => {
     const response = new Response('failed', { status: 502 });
     loggedFetchMock.mockResolvedValueOnce(response);
 
-    const module = await import('../../src/integrations/n8n.js');
+    const module = await import('../../src/core/integrations/n8nTrakt.js');
 
     await expect(module.callTraktSearch('Dune')).rejects.toThrow(/n8n webhook failed/);
   });
@@ -81,7 +81,7 @@ describe('n8n integration', () => {
     const response = new Response(JSON.stringify({ foo: 'bar' }), { status: 200 });
     loggedFetchMock.mockResolvedValueOnce(response);
 
-    const module = await import('../../src/integrations/n8n.js');
+    const module = await import('../../src/core/integrations/n8nTrakt.js');
 
     await expect(module.callTraktSearch('Dune')).rejects.toThrow(/Unexpected response payload/);
   });

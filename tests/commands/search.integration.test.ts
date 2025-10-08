@@ -7,11 +7,11 @@ const callTraktSearchMock = vi.fn();
 const setForThreadMock = vi.fn();
 const setForChannelMock = vi.fn();
 
-vi.mock('../../src/integrations/n8n.js', () => ({
+vi.mock('../../src/core/integrations/n8nTrakt.js', () => ({
   callTraktSearch: callTraktSearchMock,
 }));
 
-vi.mock('../../src/state/searchCache.js', () => ({
+vi.mock('../../src/features/search/searchCache.js', () => ({
   setForThread: setForThreadMock,
   setForChannel: setForChannelMock,
 }));
@@ -50,7 +50,7 @@ describe('search command', () => {
       results: [item],
     });
 
-    const module = await import('../../src/commands/search.js');
+    const module = await import('../../src/features/search/commands/command.js');
     await module.default.execute(interaction);
 
     expect(deferReply).toHaveBeenCalledOnce();
@@ -96,7 +96,7 @@ describe('search command', () => {
       results: [],
     });
 
-    const module = await import('../../src/commands/search.js');
+    const module = await import('../../src/features/search/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith('No results for `Unknown`.');
@@ -111,7 +111,7 @@ describe('search command', () => {
 
     callTraktSearchMock.mockRejectedValue(new Error('Fetch failed due to timeout'));
 
-    const module = await import('../../src/commands/search.js');
+    const module = await import('../../src/features/search/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith('Failed to search due to a network issue');
@@ -124,7 +124,7 @@ describe('search command', () => {
 
     callTraktSearchMock.mockRejectedValue(new Error('Webhook failed with status 500'));
 
-    const module = await import('../../src/commands/search.js');
+    const module = await import('../../src/features/search/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getErrorMessage, toError } from '../../src/utils/errors.js';
+import { getErrorMessage, toError } from '../../src/core/utils/errors.js';
 
 describe('utils/errors', () => {
   it('wraps plain strings as Error', () => {

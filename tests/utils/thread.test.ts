@@ -1,7 +1,7 @@
 import type { Message, ThreadChannel } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ensureChildThread } from '../../src/utils/thread.js';
+import { ensureChildThread } from '../../src/core/utils/thread.js';
 
 describe('utils/thread', () => {
   it('returns existing thread when present', async () => {

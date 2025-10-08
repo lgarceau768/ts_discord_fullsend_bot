@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const loggedFetchMock = vi.fn();
 
-vi.mock('../../src/utils/loggedFetch.js', () => ({
+vi.mock('../../src/core/utils/loggedFetch.js', () => ({
   loggedFetch: loggedFetchMock,
 }));
 
@@ -26,7 +26,7 @@ describe('jellyseerr integration', () => {
     );
     loggedFetchMock.mockResolvedValueOnce(response);
 
-    const module = await import('../../src/integrations/jellyseerr.js');
+    const module = await import('../../src/core/integrations/jellyseerr.js');
     const details = await module.getDetails('movie', 101);
 
     expect(details.id).toBe(101);
@@ -40,7 +40,7 @@ describe('jellyseerr integration', () => {
     const response = new Response('nope', { status: 500 });
     loggedFetchMock.mockResolvedValueOnce(response);
 
-    const module = await import('../../src/integrations/jellyseerr.js');
+    const module = await import('../../src/core/integrations/jellyseerr.js');
 
     await expect(module.getDetails('tv', 55)).rejects.toThrow(/Jellyseerr GET 500/);
   });
@@ -54,7 +54,7 @@ describe('jellyseerr integration', () => {
     const response = new Response('', { status: 200 });
     loggedFetchMock.mockResolvedValue(response);
 
-    const module = await import('../../src/integrations/jellyseerr.js');
+    const module = await import('../../src/core/integrations/jellyseerr.js');
     await module.createRequest('tv', 999, { seasons: [1, 2], profileId: 5 });
 
     const body = JSON.parse(String(loggedFetchMock.mock.calls[0]?.[1]?.body));
@@ -69,21 +69,21 @@ describe('jellyseerr integration', () => {
 
   it('computes default seasons correctly', async () => {
     process.env.JELLYSEERR_SERIES_DEFAULT = 'all';
-    const modAll = await import('../../src/integrations/jellyseerr.js');
+    const modAll = await import('../../src/core/integrations/jellyseerr.js');
     expect(modAll.pickDefaultSeasons(3)).toEqual([1, 2, 3]);
 
     vi.resetModules();
     loggedFetchMock.mockReset();
     process.env.JELLYSEERR_URL = 'https://jelly.example';
     process.env.JELLYSEERR_SERIES_DEFAULT = 'latest';
-    const modLatest = await import('../../src/integrations/jellyseerr.js');
+    const modLatest = await import('../../src/core/integrations/jellyseerr.js');
     expect(modLatest.pickDefaultSeasons(4)).toEqual([4]);
 
     vi.resetModules();
     loggedFetchMock.mockReset();
     process.env.JELLYSEERR_URL = 'https://jelly.example';
     process.env.JELLYSEERR_SERIES_DEFAULT = 'first';
-    const modFirst = await import('../../src/integrations/jellyseerr.js');
+    const modFirst = await import('../../src/core/integrations/jellyseerr.js');
     expect(modFirst.pickDefaultSeasons(0)).toEqual([1]);
   });
 });

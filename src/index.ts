@@ -1,17 +1,19 @@
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 
-import type { SlashCommand } from './commands/_types.js';
-import downloads from './commands/downloads.js';
-import ping from './commands/ping.js';
-import plant from './commands/plant.js';
-import request from './commands/request';
-import search from './commands/search.js';
-import watch from './commands/watch/index.js';
-import { env } from './config.js';
-import interactionCreate from './events/interactionCreate.js';
-import ready from './events/ready.js';
-import { initPlantReminderJob } from './jobs/plantReminder';
-import { logger } from './logger.js';
+import { env } from './core/config.js';
+import interactionCreate from './core/events/interactionCreate.js';
+import ready from './core/events/ready.js';
+import { logger } from './core/logger.js';
+import type { SlashCommand } from './core/types/commands.js';
+import downloads from './features/downloads/commands/command.js';
+import lego from './features/lego/commands/command.js';
+import ping from './features/ping/commands/command.js';
+import plant from './features/plant/commands/command.js';
+import { initPlantReminderJob } from './features/plant/jobs/plantReminder.js';
+import request from './features/request/commands/command.js';
+import search from './features/search/commands/command.js';
+import target from './features/target/commands/command.js';
+import watch from './features/watch/commands/watch/index.js';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -21,7 +23,9 @@ commands.set(ping.data.name, ping);
 commands.set(search.data.name, search);
 commands.set(downloads.data.name, downloads);
 commands.set(request.data.name, request);
+commands.set(lego.data.name, lego);
 commands.set(plant.data.name, plant);
+commands.set(target.data.name, target);
 commands.set(watch.data.name, watch);
 
 // Wire up event handlers

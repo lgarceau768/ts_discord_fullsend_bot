@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { inferTitleFromUrl } from '../../src/utils/urlTitle.js';
+import { inferTitleFromUrl } from '../../src/features/watch/utils/urlTitle.js';
 
 describe('utils/urlTitle', () => {
   it('generates title from slug', () => {

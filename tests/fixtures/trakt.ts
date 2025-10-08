@@ -1,4 +1,4 @@
-import type { SearchItem } from '../../src/integrations/n8n.js';
+import type { SearchItem } from '../../src/core/types/n8n.js';
 
 export function createSearchItem(overrides: Partial<SearchItem> = {}): SearchItem {
   return {

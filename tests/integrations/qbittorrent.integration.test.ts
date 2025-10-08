@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const loggedFetchMock = vi.fn();
 
-vi.mock('../../src/utils/loggedFetch.js', () => ({
+vi.mock('../../src/core/utils/loggedFetch.js', () => ({
   loggedFetch: loggedFetchMock,
 }));
 
@@ -44,7 +44,7 @@ describe('getActiveDownloads', () => {
     loggedFetchMock.mockResolvedValueOnce(loginResponse);
     loggedFetchMock.mockResolvedValueOnce(torrentsResponse);
 
-    const module = await import('../../src/integrations/qbittorrent.js');
+    const module = await import('../../src/core/integrations/qbittorrent.js');
     const torrents = await module.getActiveDownloads();
 
     expect(Array.isArray(torrents)).toBe(true);
@@ -59,7 +59,7 @@ describe('getActiveDownloads', () => {
     const errorResponse = new Response('boom', { status: 500 });
     loggedFetchMock.mockResolvedValueOnce(errorResponse);
 
-    const module = await import('../../src/integrations/qbittorrent.js');
+    const module = await import('../../src/core/integrations/qbittorrent.js');
 
     await expect(module.getActiveDownloads()).rejects.toThrow(
       /Failed to retrieve torrents: status 500/,
@@ -70,7 +70,7 @@ describe('getActiveDownloads', () => {
     const okResponse = new Response(JSON.stringify({ ok: true }), { status: 200 });
     loggedFetchMock.mockResolvedValueOnce(okResponse);
 
-    const module = await import('../../src/integrations/qbittorrent.js');
+    const module = await import('../../src/core/integrations/qbittorrent.js');
     const torrents = await module.getActiveDownloads();
 
     expect(torrents).toEqual([]);

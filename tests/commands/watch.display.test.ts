@@ -5,8 +5,8 @@ import {
   buildLatestEmbed,
   buildMinimalListEmbed,
   extractPriceSnapshot,
-} from '../../src/commands/watch/display.js';
-import type { WatchBase } from '../../src/types/watch.js';
+} from '../../src/features/watch/commands/watch/display.js';
+import type { WatchBase } from '../../src/features/watch/types/watch.js';
 import { createWatchDetails, createWatchRecord, createHistoryEntry } from '../fixtures/watch.js';
 
 const base: WatchBase = {

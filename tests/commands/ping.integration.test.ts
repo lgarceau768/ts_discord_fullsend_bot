@@ -14,7 +14,7 @@ describe('ping command', () => {
     const sentMessage = { createdTimestamp: 1_120 } as const;
     reply.mockResolvedValue(sentMessage);
 
-    const module = await import('../../src/commands/ping.js');
+    const module = await import('../../src/features/ping/commands/command.js');
     await module.default.execute(interaction);
 
     expect(reply).toHaveBeenCalledWith({ content: 'Pinging...', fetchReply: true });

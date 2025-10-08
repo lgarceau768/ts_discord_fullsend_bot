@@ -1,4 +1,4 @@
-import type { QBTorrent } from '../../src/integrations/qbittorrent.js';
+import type { QbittorrentTorrent as QBTorrent } from '../../src/core/types/qbittorrent.js';
 
 export function createTorrent(overrides: Partial<QBTorrent> = {}): QBTorrent {
   return {

@@ -22,7 +22,7 @@ vi.mock('pg', () => {
   };
 });
 
-vi.mock('../../src/services/changeDetectionService.js', () => ({
+vi.mock('../../src/features/watch/services/changeDetectionService.js', () => ({
   createTag: vi.fn(async (title: string) => `tag-${title}`),
   createWatch: vi.fn(async () => 'watch-uuid'),
   deleteWatch: vi.fn(async () => undefined),
@@ -32,37 +32,37 @@ vi.mock('../../src/services/changeDetectionService.js', () => ({
   updateWatch: vi.fn(async () => undefined),
 }));
 
-vi.mock('../../src/services/iconService.js', () => ({
+vi.mock('../../src/features/watch/services/iconService.js', () => ({
   getWatchIconUrl: () => 'https://icons/watch.png',
   getSnapshotIconUrl: () => 'https://icons/snapshot.png',
   getSiteIconUrl: () => 'https://icons/site.png',
 }));
 
-vi.mock('../../src/commands/watch/add.js', () => ({
+vi.mock('../../src/features/watch/commands/watch/add.js', () => ({
   configureAddSubcommand: passthroughConfigurator,
   handleAddSubcommand: handleAddSubcommandMock,
   ADD_SUBCOMMAND_NAME: 'add',
 }));
 
-vi.mock('../../src/commands/watch/list.js', () => ({
+vi.mock('../../src/features/watch/commands/watch/list.js', () => ({
   configureListSubcommand: passthroughConfigurator,
   handleListSubcommand: vi.fn(),
   LIST_SUBCOMMAND_NAME: 'list',
 }));
 
-vi.mock('../../src/commands/watch/remove.js', () => ({
+vi.mock('../../src/features/watch/commands/watch/remove.js', () => ({
   configureRemoveSubcommand: passthroughConfigurator,
   handleRemoveSubcommand: vi.fn(),
   REMOVE_SUBCOMMAND_NAME: 'remove',
 }));
 
-vi.mock('../../src/commands/watch/latest.js', () => ({
+vi.mock('../../src/features/watch/commands/watch/latest.js', () => ({
   configureLatestSubcommand: passthroughConfigurator,
   handleLatestSubcommand: vi.fn(),
   LATEST_SUBCOMMAND_NAME: 'latest',
 }));
 
-vi.mock('../../src/commands/watch/update.js', () => ({
+vi.mock('../../src/features/watch/commands/watch/update.js', () => ({
   configureUpdateSubcommand: passthroughConfigurator,
   handleUpdateSubcommand: vi.fn(),
   UPDATE_SUBCOMMAND_NAME: 'update',
@@ -80,7 +80,7 @@ describe('watch command (top-level)', () => {
     const { interaction, reply } = createInteractionMock({ subcommand: 'add' });
     process.env.CHANGEDETECTION_NOTIFICATION_URL = 'https://notify.example';
 
-    const module = await import('../../src/commands/watch/index.js');
+    const module = await import('../../src/features/watch/commands/watch/index.js');
     await module.default.execute(interaction);
 
     expect(reply).toHaveBeenCalledWith({
@@ -95,7 +95,7 @@ describe('watch command (top-level)', () => {
     process.env.CHANGEDETECTION_URL = 'https://cd.example';
     process.env.CHANGEDETECTION_NOTIFICATION_URL = 'https://notify.example';
 
-    const module = await import('../../src/commands/watch/index.js');
+    const module = await import('../../src/features/watch/commands/watch/index.js');
     await module.default.execute(interaction);
 
     expect(handleAddSubcommandMock).toHaveBeenCalledTimes(1);
