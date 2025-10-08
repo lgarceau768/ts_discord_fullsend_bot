@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const infoSpy = vi.fn();
 const errorSpy = vi.fn();
 
-vi.mock('../../src/logger.js', () => ({
+vi.mock('../../src/core/logger.js', () => ({
   logger: {
     info: infoSpy,
     error: errorSpy,
@@ -27,7 +27,7 @@ describe('utils/loggedFetch', () => {
     const mockResponse = new Response('ok', { status: 201 });
     global.fetch = vi.fn(async () => mockResponse) as typeof fetch;
 
-    const { loggedFetch } = await import('../../src/utils/loggedFetch.js');
+    const { loggedFetch } = await import('../../src/core/utils/loggedFetch.js');
     const result = await loggedFetch('https://api.example.com/resource', {
       method: 'POST',
       body: JSON.stringify({ hello: 'world' }),
@@ -50,7 +50,7 @@ describe('utils/loggedFetch', () => {
       throw failure;
     }) as typeof fetch;
 
-    const { loggedFetch } = await import('../../src/utils/loggedFetch.js');
+    const { loggedFetch } = await import('../../src/core/utils/loggedFetch.js');
 
     await expect(loggedFetch('https://api.example.com/fail')).rejects.toThrow('network down');
     expect(errorSpy).toHaveBeenCalledWith(
@@ -63,7 +63,7 @@ describe('utils/loggedFetch', () => {
     const mockResponse = new Response(null, { status: 204 });
     global.fetch = vi.fn(async () => mockResponse) as typeof fetch;
 
-    const { loggedFetch } = await import('../../src/utils/loggedFetch.js');
+    const { loggedFetch } = await import('../../src/core/utils/loggedFetch.js');
     const request = new Request('https://api.example.com/items', { method: 'PUT' });
 
     const response = await loggedFetch(request);
@@ -78,7 +78,7 @@ describe('utils/loggedFetch', () => {
     const mockResponse = new Response('done', { status: 200 });
     global.fetch = vi.fn(async () => mockResponse) as typeof fetch;
 
-    const { loggedFetch } = await import('../../src/utils/loggedFetch.js');
+    const { loggedFetch } = await import('../../src/core/utils/loggedFetch.js');
     const params = new URLSearchParams({ q: 'test' });
 
     await loggedFetch('https://api.example.com/search', { method: 'POST', body: params });

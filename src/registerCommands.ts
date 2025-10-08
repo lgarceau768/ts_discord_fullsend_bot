@@ -6,16 +6,18 @@ import {
   type SlashCommandSubcommandsOnlyBuilder,
 } from 'discord.js';
 
-import type { SlashCommand } from './commands/_types.js';
-import downloads from './commands/downloads.js';
-import penny from './commands/penny/index.js';
-import ping from './commands/ping.js';
-import plant from './commands/plant.js';
-import request from './commands/request';
-import search from './commands/search.js';
-import watch from './commands/watch/index.js';
-import { env } from './config.js';
-import { logger } from './logger.js';
+import { env } from './core/config.js';
+import { logger } from './core/logger.js';
+import type { SlashCommand } from './core/types/commands.js';
+import downloads from './features/downloads/commands/command.js';
+import lego from './features/lego/commands/command.js';
+import penny from './features/penny/commands/penny/index.js';
+import ping from './features/ping/commands/command.js';
+import plant from './features/plant/commands/command.js';
+import request from './features/request/commands/command.js';
+import search from './features/search/commands/command.js';
+import target from './features/target/commands/command.js';
+import watch from './features/watch/commands/watch/index.js';
 
 // Determine registration scope
 const isGlobal = process.argv.includes('--global');
@@ -26,7 +28,17 @@ if (!isGlobal && !isGuild) {
 }
 
 // Collect commands to register. Add new commands here.
-const commands: SlashCommand[] = [ping, search, downloads, request, plant, penny, watch];
+const commands: SlashCommand[] = [
+  ping,
+  search,
+  downloads,
+  request,
+  plant,
+  lego,
+  target,
+  penny,
+  watch,
+];
 
 const hasToJSON = (
   data: SlashCommand['data'],

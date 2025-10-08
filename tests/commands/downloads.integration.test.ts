@@ -6,7 +6,7 @@ import { createInteractionMock } from '../helpers/discord.js';
 
 const getActiveDownloadsMock = vi.fn();
 
-vi.mock('../../src/integrations/qbittorrent.js', () => ({
+vi.mock('../../src/core/integrations/qbittorrent.js', () => ({
   getActiveDownloads: getActiveDownloadsMock,
 }));
 
@@ -26,7 +26,7 @@ describe('downloads command', () => {
       createTorrent({ name: 'Ubuntu ISO', progress: 0.42, dlspeed: 5_000_000, eta: 120 }),
     ]);
 
-    const module = await import('../../src/commands/downloads.js');
+    const module = await import('../../src/features/downloads/commands/command.js');
     await module.default.execute(interaction);
 
     expect(deferReply).toHaveBeenCalledOnce();
@@ -46,7 +46,7 @@ describe('downloads command', () => {
     const { interaction, editReply } = createInteractionMock();
     getActiveDownloadsMock.mockResolvedValue([]);
 
-    const module = await import('../../src/commands/downloads.js');
+    const module = await import('../../src/features/downloads/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith('There are no active downloads at the moment.');
@@ -57,7 +57,7 @@ describe('downloads command', () => {
     getActiveDownloadsMock.mockRejectedValue(new Error('connection refused'));
 
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const module = await import('../../src/commands/downloads.js');
+    const module = await import('../../src/features/downloads/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith(

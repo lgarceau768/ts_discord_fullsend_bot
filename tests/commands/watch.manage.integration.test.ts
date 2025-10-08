@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { handleLatestSubcommand } from '../../src/commands/watch/latest.js';
-import { handleListSubcommand } from '../../src/commands/watch/list.js';
-import { handleRemoveSubcommand } from '../../src/commands/watch/remove.js';
-import { handleUpdateSubcommand } from '../../src/commands/watch/update.js';
-import type { WatchBase } from '../../src/types/watch.js';
+import { handleLatestSubcommand } from '../../src/features/watch/commands/watch/latest.js';
+import { handleListSubcommand } from '../../src/features/watch/commands/watch/list.js';
+import { handleRemoveSubcommand } from '../../src/features/watch/commands/watch/remove.js';
+import { handleUpdateSubcommand } from '../../src/features/watch/commands/watch/update.js';
+import type { WatchBase } from '../../src/features/watch/types/watch.js';
 import { createWatchDetails, createWatchRecord, createHistoryEntry } from '../fixtures/watch.js';
 import { createInteractionMock } from '../helpers/discord.js';
 
@@ -336,7 +336,7 @@ describe('watch command subhandlers', () => {
       stringOptions: { url: 'https://store.example/foo', title: 'Custom Watch' },
     });
 
-    await import('../../src/commands/watch/add.js').then(({ handleAddSubcommand }) =>
+    await import('../../src/features/watch/commands/watch/add.js').then(({ handleAddSubcommand }) =>
       handleAddSubcommand(base, interaction),
     );
 

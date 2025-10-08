@@ -4,23 +4,23 @@ import { describe, expect, it } from 'vitest';
 import {
   configureRecentSubcommand,
   RECENT_SUBCOMMAND_NAME,
-} from '../../src/commands/penny/recent.ts';
+} from '../../src/features/penny/commands/penny/recent.ts';
 import {
   configureSearchSubcommand,
   SEARCH_SUBCOMMAND_NAME,
-} from '../../src/commands/penny/search.ts';
+} from '../../src/features/penny/commands/penny/search.ts';
 import {
   configureStatusSubcommand,
   STATUS_SUBCOMMAND_NAME,
-} from '../../src/commands/penny/status.ts';
+} from '../../src/features/penny/commands/penny/status.ts';
 import {
   configureSubscribeSubcommand,
   SUBSCRIBE_SUBCOMMAND_NAME,
-} from '../../src/commands/penny/subscribe.ts';
+} from '../../src/features/penny/commands/penny/subscribe.ts';
 import {
   configureUnsubscribeSubcommand,
   UNSUBSCRIBE_SUBCOMMAND_NAME,
-} from '../../src/commands/penny/unsubscribe.ts';
+} from '../../src/features/penny/commands/penny/unsubscribe.ts';
 
 const toJson = (builder: SlashCommandSubcommandBuilder) => builder.toJSON();
 

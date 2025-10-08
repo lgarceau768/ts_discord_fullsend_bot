@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { WatchBase } from '../../src/types/watch.js';
+import type { WatchBase } from '../../src/features/watch/types/watch.js';
 import { createInteractionMock } from '../helpers/discord.js';
 
 const inferTitleFromUrlMock = vi.fn(() => 'Derived Title');
 
-vi.mock('../../src/logger.js', () => ({
+vi.mock('../../src/core/logger.js', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -14,11 +14,11 @@ vi.mock('../../src/logger.js', () => ({
   },
 }));
 
-vi.mock('../../src/utils/urlTitle.js', () => ({
+vi.mock('../../src/features/watch/utils/urlTitle.js', () => ({
   inferTitleFromUrl: inferTitleFromUrlMock,
 }));
 
-vi.mock('../../src/utils/errors.js', () => ({
+vi.mock('../../src/core/utils/errors.js', () => ({
   getErrorMessage: (error: unknown) =>
     error instanceof Error ? error.message : String(error ?? 'Unknown error'),
 }));
@@ -77,7 +77,7 @@ describe('watch add subcommand handler', () => {
 
   it('creates a watch and stores metadata', async () => {
     const base = buildBase();
-    const { handleAddSubcommand } = await import('../../src/commands/watch/add.js');
+    const { handleAddSubcommand } = await import('../../src/features/watch/commands/watch/add.js');
 
     const { interaction, deferReply, editReply } = createInteractionMock({
       subcommand: 'add',
@@ -118,7 +118,7 @@ describe('watch add subcommand handler', () => {
     const base = buildBase();
     base.cdCreateWatch.mockRejectedValue(new Error('ChangeDetection offline'));
 
-    const { handleAddSubcommand } = await import('../../src/commands/watch/add.js');
+    const { handleAddSubcommand } = await import('../../src/features/watch/commands/watch/add.js');
     const { interaction, editReply } = createInteractionMock({
       subcommand: 'add',
       stringOptions: { url: 'https://store.example/item', title: 'Custom Title' },

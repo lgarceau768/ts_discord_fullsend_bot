@@ -9,18 +9,18 @@ const pickDefaultSeasonsMock = vi.fn();
 const getForThreadMock = vi.fn();
 const getForChannelMock = vi.fn();
 
-vi.mock('../../src/integrations/jellyseerr.js', () => ({
+vi.mock('../../src/core/integrations/jellyseerr.js', () => ({
   createRequest: createRequestMock,
   getDetails: getDetailsMock,
   pickDefaultSeasons: pickDefaultSeasonsMock,
 }));
 
-vi.mock('../../src/state/searchCache.js', () => ({
+vi.mock('../../src/features/search/searchCache.js', () => ({
   getForThread: getForThreadMock,
   getForChannel: getForChannelMock,
 }));
 
-vi.mock('../../src/utils/errors.js', () => ({
+vi.mock('../../src/core/utils/errors.js', () => ({
   getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : String(error)),
 }));
 
@@ -49,7 +49,7 @@ describe('request command', () => {
       channel: channel as unknown as { id: string; isThread: () => boolean },
     });
 
-    const module = await import('../../src/commands/request.js');
+    const module = await import('../../src/features/request/commands/command.js');
     await module.default.execute(interaction);
 
     expect(deferReply).toHaveBeenCalledOnce();
@@ -73,7 +73,7 @@ describe('request command', () => {
       channel: channel as unknown as { id: string; isThread: () => boolean },
     });
 
-    const module = await import('../../src/commands/request.js');
+    const module = await import('../../src/features/request/commands/command.js');
     await module.default.execute(interaction);
 
     expect(getDetailsMock).toHaveBeenCalledWith('tv', 124364);
@@ -97,7 +97,7 @@ describe('request command', () => {
       channel: channel as unknown as { id: string; isThread: () => boolean },
     });
 
-    const module = await import('../../src/commands/request.js');
+    const module = await import('../../src/features/request/commands/command.js');
     await module.default.execute(interaction);
 
     expect(pickDefaultSeasonsMock).not.toHaveBeenCalled();
@@ -111,7 +111,7 @@ describe('request command', () => {
 
     const { interaction } = createInteractionMock({ integerOptions: { index: 1 } });
 
-    const module = await import('../../src/commands/request.js');
+    const module = await import('../../src/features/request/commands/command.js');
     await module.default.execute(interaction);
 
     expect(createRequestMock).toHaveBeenCalledWith('movie', 157336);
@@ -123,7 +123,7 @@ describe('request command', () => {
 
     const { interaction, editReply } = createInteractionMock({ integerOptions: { index: 1 } });
 
-    const module = await import('../../src/commands/request.js');
+    const module = await import('../../src/features/request/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith(
@@ -144,7 +144,7 @@ describe('request command', () => {
       channel: channel as unknown as { id: string; isThread: () => boolean },
     });
 
-    const module = await import('../../src/commands/request.js');
+    const module = await import('../../src/features/request/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith('❌ Failed to request: Jellyseerr API down');
@@ -161,7 +161,7 @@ describe('request command', () => {
       channel: channel as unknown as { id: string; isThread: () => boolean },
     });
 
-    const module = await import('../../src/commands/request.js');
+    const module = await import('../../src/features/request/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith('Index 5 is out of range. Choose 1..2.');
@@ -179,7 +179,7 @@ describe('request command', () => {
       channel: channel as unknown as { id: string; isThread: () => boolean },
     });
 
-    const module = await import('../../src/commands/request.js');
+    const module = await import('../../src/features/request/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith(
@@ -207,7 +207,7 @@ describe('request command', () => {
         channel: channel as unknown as { id: string; isThread: () => boolean },
       });
 
-      const module = await import('../../src/commands/request.js');
+      const module = await import('../../src/features/request/commands/command.js');
       await module.default.execute(interaction);
       expect(createRequestMock).toHaveBeenLastCalledWith('tv', 555, expected);
       createRequestMock.mockClear();

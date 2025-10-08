@@ -37,12 +37,12 @@ const loggedFetchMock = vi.fn(async (url: string, init?: RequestInit) => {
   return handler(ctx);
 });
 
-vi.mock('../../src/utils/loggedFetch.js', () => ({
+vi.mock('../../src/core/utils/loggedFetch.js', () => ({
   loggedFetch: loggedFetchMock,
 }));
 const capturedErrors: unknown[] = [];
 
-vi.mock('../../src/utils/errors.js', () => ({
+vi.mock('../../src/core/utils/errors.js', () => ({
   getErrorMessage: (error: unknown) => {
     capturedErrors.push(error);
     return error instanceof Error ? error.message : String(error ?? 'Unknown error');
@@ -93,7 +93,7 @@ describe('plant command', () => {
       attachmentOptions: { photo: attachment },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(deferReply).toHaveBeenCalledOnce();
@@ -135,7 +135,7 @@ describe('plant command', () => {
       stringOptions: { location: 'Office' },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(plantRequests.map((req) => req.body.action)).toEqual(['list']);
@@ -150,7 +150,7 @@ describe('plant command', () => {
 
     const { interaction, editReply } = createInteractionMock({ subcommand: 'list' });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith('No plants found yet. Add one with `/plant add`.');
@@ -169,7 +169,7 @@ describe('plant command', () => {
       channelOptions: { channel: { id: 'channel-123' } },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith(
@@ -185,7 +185,7 @@ describe('plant command', () => {
       integerOptions: { id: 404 },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith('❌ Plant not found');
@@ -205,7 +205,7 @@ describe('plant command', () => {
       integerOptions: { id: 21 },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     const payload = editReply.mock.calls[0][0] as { embeds: unknown[] };
@@ -228,7 +228,7 @@ describe('plant command', () => {
       stringOptions: { name: 'Updated Monstera', light: 'bright' },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith(
@@ -246,7 +246,7 @@ describe('plant command', () => {
       integerOptions: { id: 8 },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith('🗑️ Deleted **Basil** (ID 8).');
@@ -269,7 +269,7 @@ describe('plant command', () => {
       stringOptions: { note: 'Half a liter' },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith(
@@ -297,7 +297,7 @@ describe('plant command', () => {
       stringOptions: { question: 'How often should I water?' },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     const payload = editReply.mock.calls[0][0] as { embeds: unknown[] };
@@ -311,7 +311,7 @@ describe('plant command', () => {
       integerOptions: { id: 4 },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith('Please attach an image or provide `image_url`.');
@@ -329,7 +329,7 @@ describe('plant command', () => {
       stringOptions: { image_url: 'https://cdn.discordapp.com/plant.jpg', caption: 'New growth' },
     });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(editReply).toHaveBeenCalledWith(
@@ -340,7 +340,7 @@ describe('plant command', () => {
   it('handles unknown subcommands defensively', async () => {
     const { interaction, editReply, deferReply } = createInteractionMock({ subcommand: 'unknown' });
 
-    const module = await import('../../src/commands/plant.js');
+    const module = await import('../../src/features/plant/commands/command.js');
     await module.default.execute(interaction);
 
     expect(deferReply).toHaveBeenCalledOnce();

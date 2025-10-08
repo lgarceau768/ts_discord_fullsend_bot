@@ -1,8 +1,8 @@
 import type {
   ChangeDetectionHistoryEntry,
   ChangeDetectionWatchDetails,
-} from '../../src/types/changeDetection.js';
-import type { WatchRecord } from '../../src/types/watch.js';
+} from '../../src/features/watch/types/changeDetection.js';
+import type { WatchRecord } from '../../src/features/watch/types/watch.js';
 
 export function createWatchRecord(overrides: Partial<WatchRecord> = {}): WatchRecord {
   return {
